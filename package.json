@@ -1,0 +1,17 @@
+{
+  "name": "homelab-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "First Docker app deployed to homelab via GitHub Actions",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
