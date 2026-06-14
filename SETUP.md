@@ -8,20 +8,31 @@ Complete these steps **in order**. The repo and workflow are already in place; y
 Site name: homelab-app
 Type: docker
 Port: 3001
-GitHub repo: git@github.com:rinchenlama0075/homelab-app.git
+GitHub repo: https://github.com/rinchenlama0075/homelab-app
+
+Dev laptop (done):
+- [x] GitHub repo created and pushed
+- [x] DEPLOY_HOST, DEPLOY_USER, DEPLOY_SITE_NAME secrets set
+- [x] finish-cicd-setup.sh script added
 
 Server (on homelab — SSH from home network):
 - [ ] register-site.sh
 - [ ] Caddy block + reload (when you have a domain)
 
-GitHub:
-- [ ] Create repo and push this project
+GitHub (needs server SSH keys):
 - [ ] Deploy key (homelab_github.pub, read-only)
-- [ ] Actions secrets (see below)
+- [ ] DEPLOY_SSH_KEY secret (homelab_ci private key)
 
 Verify:
 - [ ] Actions workflow succeeds on push to main
-- [ ] curl http://localhost:3001/health on server (after deploy)
+- [ ] curl http://127.0.0.1:3001/health on server (after deploy)
+```
+
+### Finish in one command (dev laptop, on home network)
+
+```bash
+cd ~/Desktop/Projects/homelab-app
+bash scripts/finish-cicd-setup.sh
 ```
 
 ---
