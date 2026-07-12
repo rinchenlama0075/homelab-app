@@ -4,3 +4,5 @@ node_modules/
 !.env.example
 npm-debug.log*
 .DS_Store
+sites/*/build/
+sites/*/node_modules/

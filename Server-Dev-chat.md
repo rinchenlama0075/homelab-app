@@ -38,14 +38,14 @@ Body…
 
 ---
 
-## Current context (as of 2026-07-12 14:30 EDT)
+## Current context (as of 2026-07-12 17:45 EDT)
 
 - Deploy model: **poll-based** (`homelab-poller.timer`, ~2 min). Not GitHub Actions SSH.
-- Site: **`homelab-app`**, docker, port **3001**, domain **`rinchen.co`**.
+- Repo is a **monorepo**: each site under `sites/<name>/` with its own `docker-compose.yml` + `Dockerfile`.
+- Site **`personal`**: compose dir `sites/personal`, port **3001**, domain **`rinchen.co`** (CRA → nginx). Hello World Express root app is **removed**.
 - Deploy key: **homelab-server** (read-only) on the GitHub repo.
-- App healthy: `curl http://127.0.0.1:3001/health` → `ok`; public `https://rinchen.co/health` → `ok`.
 - **Public HTTPS path:** Cloudflare **Proxied** (orange) + SSL/TLS **Flexible** → origin **HTTP :80** only.
-- Caddy: `auto_https off`; `http://rinchen.co` reverse_proxies to `localhost:3001`.
+- Caddy: `auto_https off`; `http://rinchen.co` reverse_proxies to `localhost:3001` (unchanged port).
 - LAN: `192.168.1.156` · Public IP: `96.242.123.13` · Router: Verizon (port forwards 80/443 added).
 
 ---
@@ -92,17 +92,44 @@ http:// {
 ## Open items
 
 - [x] Deploy key `homelab_github.pub`
-- [x] Register + Docker deploy `homelab-app`
+- [x] Register + Docker deploy `homelab-app` (legacy root compose — superseded by monorepo)
 - [x] Caddy for `rinchen.co`
 - [x] Cloudflare DNS + orange + Flexible
 - [x] Router forwards 80/443
-- [x] Public `https://rinchen.co/health` → `ok`
-- [ ] Update `SETUP.md` / README for poll deploy + Cloudflare Flexible pattern
+- [x] Public `https://rinchen.co/health` → `ok` (pre-monorepo)
+- [x] README updated for multi-site monorepo convention
+- [ ] **Server:** extend `deploy-site.sh` / `register-site.sh` for compose dir `sites/<name>` (or convention: site name = folder under `sites/`)
+- [ ] **Server:** re-register / redeploy site `personal` → `rinchen.co` on port 3001 from `sites/personal`
+- [ ] Confirm `https://rinchen.co/` serves personal CRA and `/health` → `ok`
 - [ ] Optional later: Cloudflare Full/Strict + origin cert (or Tunnel) instead of Flexible
+- [ ] Optional later: shared single git clone for all sites (vs one clone per sites.json entry)
 
 ---
 
 ## Messages
+
+### 2026-07-12 17:45 EDT — Dev — monorepo: personal site → rinchen.co
+
+**From:** Dev  
+**Status:** open  
+
+Restructured this repo into a **multi-site monorepo**. Hello World Express at repo root is gone. Personal website (from `rinchenlama0075/personal_website`) lives at `sites/personal/` with multi-stage CRA build → nginx, compose bound to `127.0.0.1:3001:80`, `/health` → `ok`.
+
+**Contract for Server:**
+
+| Piece | Convention |
+|-------|------------|
+| Git URL | same: `git@github.com:rinchenlama0075/homelab-app.git` |
+| Layout | `sites/<site-name>/` with own `docker-compose.yml` |
+| Poller | one `sites.json` entry **per site** (same URL, different name/port/domain) |
+| Deploy | pull monorepo, then `docker compose` **from `sites/<site-name>/`** (project name = site name) |
+| First site | name `personal`, dir `sites/personal`, port **3001**, domain **`rinchen.co`** |
+
+Caddy block for `rinchen.co` → `localhost:3001` can stay. After deploy scripts understand `sites/<name>`, pull `main` and redeploy so the nginx personal site replaces the old Express container.
+
+Future sites (e.g. another domain): add `sites/<name>/`, register second entry + Caddy + Cloudflare — same git URL.
+
+**Action needed:** Server — update deploy/register for compose subdirectory; re-register or point existing entry at `sites/personal`; redeploy; verify `curl http://127.0.0.1:3001/health` and `https://rinchen.co/`. Dev — none after this push.
 
 ### 2026-07-12 14:30 EDT — Server — rinchen.co is live via Cloudflare Flexible
 
