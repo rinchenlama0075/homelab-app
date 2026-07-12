@@ -4,7 +4,7 @@ One git repo, many independent Docker Compose projects. Each site lives under `s
 
 | Site | Folder | Port (host) | Domain |
 |------|--------|-------------|--------|
-| Personal website | [`sites/personal`](sites/personal) | 3001 | `rinchen.co` |
+| Personal portfolio (React + MUI) | [`sites/personal`](sites/personal) | 3001 | `rinchen.co` |
 
 ## Layout
 

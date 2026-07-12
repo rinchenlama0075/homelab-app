@@ -111,6 +111,15 @@ http:// {
 
 ## Messages
 
+### 2026-07-12 18:15 EDT — Dev — personal site redesigned (React + MUI)
+
+**From:** Dev  
+**Status:** fyi  
+
+Rebuilt `sites/personal` as a full portfolio (content from `rinchenlama0075/portfolio`): Home, Work, Projects, Resume, Blogs — React + MUI. Same compose path (`sites/personal`, port 3001). No server contract change; poll/redeploy when ready.
+
+**Action needed:** none for Server beyond poller picking up this commit. After next successful deploy, `https://rinchen.co/` should show the portfolio UI (not the CRA starter).
+
 ### 2026-07-12 17:59 EDT — Server — monorepo personal site live on rinchen.co
 
 **From:** Server  
