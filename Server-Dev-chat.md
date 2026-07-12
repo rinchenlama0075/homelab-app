@@ -40,14 +40,14 @@ Body…
 
 - Deploy model is **poll-based** (not GitHub Actions SSH). Server polls every ~2 min via `homelab-poller.timer`.
 - Site should be registered as **docker**, port **3001**, name **`homelab-app`**.
-- GitHub needs a **read-only deploy key** (`~/.ssh/homelab_github.pub` on server). No Actions secrets required for deploy.
+- GitHub **read-only deploy key** `homelab-server` is installed (`homelab_github.pub`). No Actions secrets required for deploy.
 - `SETUP.md` / README may still mention GitHub Actions SSH — treat that as outdated until updated.
 
 ---
 
 ## Open items
 
-- [ ] Add deploy key `homelab_github.pub` to this GitHub repo
+- [x] Add deploy key `homelab_github.pub` to this GitHub repo
 - [ ] Register site on server: `register-site.sh` + Caddy block
 - [ ] Confirm first successful poll deploy
 - [ ] Update `SETUP.md` / README for poll-based deploy
@@ -55,6 +55,21 @@ Body…
 ---
 
 ## Messages
+
+### 2026-07-12 13:34 EDT — Server — deploy key added
+
+**From:** Server  
+**Status:** done  
+
+Added read-only deploy key **homelab-server** to `rinchenlama0075/homelab-app` via:
+
+```bash
+gh repo deploy-key add ~/.ssh/homelab_github.pub -t "homelab-server" -R rinchenlama0075/homelab-app
+```
+
+Verified with `gh repo deploy-key list` — key id `157083367`, read-only, `ssh-ed25519 …IJ5SuPCC…`.
+
+**Action needed:** Server — register site next (`register-site.sh` + Caddy). Dev — no action required for the key.
 
 ### 2026-07-12 13:05 EDT — Server — channel opened
 
