@@ -5,13 +5,13 @@ Shared log for agents on the **homelab server** and the **dev laptop**. Both sid
 Repo: https://github.com/rinchenlama0075/homelab-app  
 Server clone: `/home/rinchen/Projects/homelab-app`  
 Poll deploy clone: `/srv/homelab/repos/homelab-app`  
-Live app: Docker `homelab-app-web-1` on `127.0.0.1:3001` → domain **rinchen.co**
+Live URL: **https://rinchen.co** (Cloudflare orange cloud → origin HTTP :80 → Caddy → Docker `:3001`)
 
 ---
 
 ## How to use
 
-1. `git pull origin main` (or current working branch)
+1. `git pull` the active branch (often `main` after merge)
 2. Append a new message under [Messages](#messages) (newest at the top)
 3. `git add Server-Dev-chat.md && git commit -m "chat: <short summary>" && git push`
 4. Tell the other agent (or wait for poll) to pull and respond
@@ -38,57 +38,99 @@ Body…
 
 ---
 
-## Current context (as of 2026-07-12 13:57 EDT)
+## Current context (as of 2026-07-12 14:30 EDT)
 
-- Deploy model is **poll-based** (`homelab-poller.timer`, every ~2 min). Not GitHub Actions SSH.
-- Site registered: **`homelab-app`**, type **docker**, port **3001**, domain **`rinchen.co`**.
-- GitHub read-only deploy key **homelab-server** is installed.
-- Container is up: `curl http://127.0.0.1:3001/health` → `ok`.
-- Caddyfile serves `rinchen.co` → `localhost:3001` (www removed; no DNS for www).
-- Cloudflare DNS: A `@` → `96.242.123.13`, DNS-only (grey cloud). Old records deleted.
-- **Blocked for public HTTPS:** router must forward TCP **80** and **443** → `192.168.1.156`. Port 80 reaches Caddy; port 443 still hits the router’s own page (not the laptop), so Let’s Encrypt fails.
+- Deploy model: **poll-based** (`homelab-poller.timer`, ~2 min). Not GitHub Actions SSH.
+- Site: **`homelab-app`**, docker, port **3001**, domain **`rinchen.co`**.
+- Deploy key: **homelab-server** (read-only) on the GitHub repo.
+- App healthy: `curl http://127.0.0.1:3001/health` → `ok`; public `https://rinchen.co/health` → `ok`.
+- **Public HTTPS path:** Cloudflare **Proxied** (orange) + SSL/TLS **Flexible** → origin **HTTP :80** only.
+- Caddy: `auto_https off`; `http://rinchen.co` reverse_proxies to `localhost:3001`.
+- LAN: `192.168.1.156` · Public IP: `96.242.123.13` · Router: Verizon (port forwards 80/443 added).
+
+---
+
+## Learnings (keep for future sites)
+
+1. **Poll deploy > Actions SSH** for this homelab — no inbound SSH from GitHub; only a read-only deploy key.
+2. **Verizon + Let’s Encrypt is painful** — even with port forwards, ACME often timed out (`connection` / firewall). Don’t rely on Caddy auto-HTTPS on the origin first.
+3. **Grey cloud first failed for browsers** — phone hit `ERR_SSL_PROTOCOL_ERROR` because HSTS expected HTTPS and the origin had no cert.
+4. **Working pattern:** Cloudflare orange cloud + **Flexible** SSL; Caddy serves **HTTP only** on :80; Cloudflare presents a valid public cert.
+5. **DNS:** one A `@` → home public IP. Delete unused old records. Skip `www` unless you add DNS + Caddy for it.
+6. **Router port forward** = send WAN :80/:443 to laptop `192.168.1.156`. Needed so Cloudflare Flexible can reach origin on 80.
+7. **sudo + `$HOME`:** scripts under sudo must use `SUDO_USER` home, not `/root`.
+8. **Never restart `systemd-logind`** mid-setup on the desktop laptop — use drop-ins + reboot for power settings.
+
+### Caddy origin config (current)
+
+Path: `/srv/homelab/caddy/Caddyfile` → reload: `sudo bash ~/homelab-setup/scripts/reload-caddy.sh`
+
+```caddy
+{
+	auto_https off
+}
+
+http://rinchen.co {
+	reverse_proxy localhost:3001
+	encode gzip
+}
+
+http:// {
+	respond "Homelab server is running. Sites: rinchen.co" 200
+}
+```
+
+### Cloudflare checklist (current)
+
+- [x] A `@` → `96.242.123.13`
+- [x] Proxy **Proxied** (orange)
+- [x] SSL/TLS **Flexible**
+- [x] No required `www` record
 
 ---
 
 ## Open items
 
-- [x] Add deploy key `homelab_github.pub` to this GitHub repo
-- [x] Register site on server (`homelab-app` → `rinchen.co:3001`)
-- [x] First Docker deploy on server (`homelab-app-web-1` healthy locally)
-- [x] Caddy config + reload for `rinchen.co`
-- [x] Cloudflare A record → `96.242.123.13` (grey cloud)
-- [ ] Router port forward **80** and **443** → `192.168.1.156`
-- [ ] Confirm `curl https://rinchen.co/health` → `ok` (public)
-- [ ] Update `SETUP.md` / README for poll-based deploy
+- [x] Deploy key `homelab_github.pub`
+- [x] Register + Docker deploy `homelab-app`
+- [x] Caddy for `rinchen.co`
+- [x] Cloudflare DNS + orange + Flexible
+- [x] Router forwards 80/443
+- [x] Public `https://rinchen.co/health` → `ok`
+- [ ] Update `SETUP.md` / README for poll deploy + Cloudflare Flexible pattern
+- [ ] Optional later: Cloudflare Full/Strict + origin cert (or Tunnel) instead of Flexible
 
 ---
 
 ## Messages
 
+### 2026-07-12 14:30 EDT — Server — rinchen.co is live via Cloudflare Flexible
+
+**From:** Server  
+**Status:** done  
+
+Public site is up:
+
+- `https://rinchen.co/health` → `ok`
+- `https://rinchen.co/` → Express JSON from `homelab-app`
+- Headers show `server: cloudflare` and `via: 1.1 Caddy`
+
+**What we did after the 13:57 blocker:**
+1. Verizon port forwards for 80/443 → `192.168.1.156` (HTTP to Caddy started working; LE still timed out from the internet).
+2. Phone showed `ERR_SSL_PROTOCOL_ERROR` on HTTPS — no origin cert + HSTS expecting TLS.
+3. Switched strategy: Caddy `auto_https off`, serve `http://rinchen.co` only; Cloudflare orange cloud + SSL **Flexible**.
+4. Reloaded Caddy; verified public HTTPS through Cloudflare.
+
+**Action needed:** Dev — update SETUP.md/README when convenient (poll deploy + Cloudflare Flexible). Server — none for go-live.
+
 ### 2026-07-12 13:57 EDT — Server — deploy live locally; public HTTPS blocked on router 443
 
 **From:** Server  
-**Status:** blocked  
+**Status:** done *(superseded by 14:30 go-live)*  
 
-**Deploy completed on server:**
-1. Registered:  
-   `bash /srv/homelab/deploy/register-site.sh homelab-app docker git@github.com:rinchenlama0075/homelab-app.git 3001 rinchen.co`
-2. Built/started Docker; `homelab-app-web-1` listens on `127.0.0.1:3001→3000`
-3. Caddyfile set to reverse_proxy `rinchen.co` → `localhost:3001`; reloaded successfully
-4. Local checks: `/health` → `ok`, `/` → JSON from `src/server.js`
+Registered site, Docker up on `:3001`, Caddy configured, Cloudflare grey-cloud A record set. Public HTTPS blocked until router forwards + later solved via Cloudflare Flexible (see newer message).
 
-**DNS / Cloudflare:**
-- User set A `@` → `96.242.123.13`, deleted old project records, grey cloud (DNS only)
-- Dig confirms `rinchen.co` → `96.242.123.13`
-
-**Public access blocker:**
-- HTTP :80 reaches Caddy (301 → HTTPS)
-- HTTPS :443 returns a router-style 404 (not Caddy) — **port 443 is not forwarded** to the laptop (or router remote admin owns 443)
-- Let’s Encrypt ACME failed earlier (Cloudflare 530 while proxied; then needs working 80/443 to the origin)
-
-**User next steps:** On router admin (`http://192.168.1.1`), add port forwards TCP 80→192.168.1.156:80 and TCP 443→192.168.1.156:443; disable remote admin on 443 if present; then `sudo bash ~/homelab-setup/scripts/reload-caddy.sh` and test `curl https://rinchen.co/health`.
-
-**Action needed:** User/Server — finish router port forwarding, then re-verify public HTTPS. Dev — optional: update SETUP.md for poll deploy once public is green.
+**Action needed:** none (historical)
 
 ### 2026-07-12 13:34 EDT — Server — deploy key added
 
@@ -101,21 +143,15 @@ Added read-only deploy key **homelab-server** to `rinchenlama0075/homelab-app` v
 gh repo deploy-key add ~/.ssh/homelab_github.pub -t "homelab-server" -R rinchenlama0075/homelab-app
 ```
 
-Verified with `gh repo deploy-key list` — key id `157083367`, read-only, `ssh-ed25519 …IJ5SuPCC…`.
+Verified with `gh repo deploy-key list` — key id `157083367`, read-only.
 
-**Action needed:** Server — register site next (`register-site.sh` + Caddy). Dev — no action required for the key.
+**Action needed:** none
 
 ### 2026-07-12 13:05 EDT — Server — channel opened
 
 **From:** Server  
-**Status:** open  
+**Status:** done  
 
-Cloned `homelab-app` to `/home/rinchen/Projects/homelab-app` and created this chat file. Homelab poller is installed and active (`homelab-poller.timer`, every 120s). No sites registered in `/srv/homelab/deploy/sites.json` yet for this app.
+Created this chat file; poller installed. Initial setup path documented in later messages.
 
-**Next on Server (after this file is pushed):**
-1. Add deploy key from `cat ~/.ssh/homelab_github.pub` to this repo (Settings → Deploy keys, read-only)
-2. Register:  
-   `bash /srv/homelab/deploy/register-site.sh homelab-app docker git@github.com:rinchenlama0075/homelab-app.git 3001 <domain-or-placeholder>`
-3. Reload Caddy if a domain is configured
-
-**Action needed:** Dev — pull this file, reply with preferred domain (or LAN-only for now), and confirm whether Actions workflow can be removed/updated. Server — push this file when user allows commit, then finish deploy key + register.
+**Action needed:** none
