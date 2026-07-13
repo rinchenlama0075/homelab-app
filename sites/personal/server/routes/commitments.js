@@ -2,6 +2,8 @@ const express = require("express");
 const { db } = require("../db");
 const { requireAuth } = require("../middleware/auth");
 const { startOfCurrentWeekSql } = require("../lib/week");
+const { computeStreak } = require("../lib/streaks");
+const { evaluateAfterCommitmentCreated } = require("../lib/badges");
 
 const router = express.Router();
 
@@ -11,6 +13,12 @@ const MIN_TARGET_PER_WEEK = 1;
 const MAX_TARGET_PER_WEEK = 7;
 
 function serializeCommitment(row) {
+  const timestamps = db
+    .prepare("SELECT created_at FROM posts WHERE commitment_id = ? AND type = 'check_in'")
+    .all(row.id)
+    .map((post) => post.created_at);
+  const streak = computeStreak({ checkInTimestamps: timestamps, targetPerWeek: row.target_per_week });
+
   return {
     id: row.id,
     title: row.title,
@@ -20,6 +28,10 @@ function serializeCommitment(row) {
     owner: { id: row.user_id, username: row.username },
     checkInsThisWeek: row.week_count,
     totalCheckIns: row.total_count,
+    currentStreakWeeks: streak.currentStreakWeeks,
+    longestStreakWeeks: streak.longestStreakWeeks,
+    isAtRisk: streak.isAtRisk,
+    checkInsNeededThisWeek: streak.checkInsNeededThisWeek,
   };
 }
 
@@ -28,8 +40,8 @@ function selectCommitmentsSql(whereClause) {
     SELECT
       c.id, c.title, c.description, c.target_per_week, c.created_at, c.user_id,
       u.username,
-      (SELECT COUNT(*) FROM posts p WHERE p.commitment_id = c.id) AS total_count,
-      (SELECT COUNT(*) FROM posts p WHERE p.commitment_id = c.id AND p.created_at >= ?) AS week_count
+      (SELECT COUNT(*) FROM posts p WHERE p.commitment_id = c.id AND p.type = 'check_in') AS total_count,
+      (SELECT COUNT(*) FROM posts p WHERE p.commitment_id = c.id AND p.type = 'check_in' AND p.created_at >= ?) AS week_count
     FROM commitments c
     JOIN users u ON u.id = c.user_id
     ${whereClause}
@@ -101,6 +113,8 @@ router.post("/", requireAuth, (req, res) => {
       "INSERT INTO commitments (user_id, title, description, target_per_week) VALUES (?, ?, ?, ?)"
     )
     .run(req.user.id, trimmedTitle, trimmedDescription || null, target);
+
+  evaluateAfterCommitmentCreated(db, { user: req.user });
 
   const weekStart = startOfCurrentWeekSql();
   const row = db
