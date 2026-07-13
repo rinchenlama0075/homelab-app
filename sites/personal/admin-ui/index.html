@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <meta name="robots" content="noindex, nofollow, noarchive" />
+  <title>rinchen.co — admin</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Admin</h1>
+    <button id="logout-btn" class="link-btn" hidden>Log out</button>
+  </header>
+
+  <main id="app">
+    <section id="login-view">
+      <form id="login-form" autocomplete="off">
+        <label for="password">Admin password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required />
+        <button type="submit">Log in</button>
+        <p id="login-error" class="error" hidden></p>
+      </form>
+    </section>
+
+    <section id="dashboard-view" hidden>
+      <div class="card" id="status-card">
+        <h2>Status</h2>
+        <div class="kv-list" id="status-body">Loading…</div>
+      </div>
+
+      <div class="card" id="deploys-card">
+        <h2>Last deploys</h2>
+        <div class="kv-list" id="deploys-body">Loading…</div>
+      </div>
+
+      <div class="card" id="health-card">
+        <h2>Health checks</h2>
+        <div class="kv-list" id="health-body">Loading…</div>
+      </div>
+
+      <div class="card" id="containers-card">
+        <h2>Containers</h2>
+        <ul id="containers-list" class="containers-list"></ul>
+      </div>
+    </section>
+
+    <section id="logs-view" hidden>
+      <button id="back-btn" class="link-btn">&larr; Back</button>
+      <h2 id="logs-title"></h2>
+      <div class="logs-controls">
+        <label>
+          Tail
+          <select id="tail-select">
+            <option value="100">100</option>
+            <option value="200" selected>200</option>
+            <option value="500">500</option>
+            <option value="1000">1000</option>
+          </select>
+        </label>
+        <label class="auto-refresh">
+          <input type="checkbox" id="auto-refresh" />
+          Auto-refresh (5s)
+        </label>
+        <button id="refresh-logs-btn">Refresh</button>
+      </div>
+      <pre id="logs-output">Loading…</pre>
+    </section>
+
+    <p id="global-error" class="error" hidden></p>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

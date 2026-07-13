@@ -1,0 +1,11 @@
+{
+  "personal": {
+    "type": "docker",
+    "git_url": "git@github.com:rinchenlama0075/homelab-app.git",
+    "domain": "rinchen.co",
+    "port": 3001,
+    "compose_dir": "sites/personal",
+    "branch": "main",
+    "poll_enabled": true
+  }
+}

@@ -1,0 +1,24 @@
+# Tracked in-repo so Caddy config changes are diffable/reviewable like any
+# other code change. On the server, /srv/homelab/caddy/Caddyfile is a symlink
+# to this file — editing it here *is* editing the live config, but Caddy
+# still needs an explicit reload (see ../scripts/reload-caddy.sh); it does
+# not hot-watch this file.
+{
+	auto_https off
+}
+
+http://rinchen.co {
+	reverse_proxy localhost:3001
+	encode gzip
+}
+
+# admin.rinchen.co reverse-proxies to the exact same origin as rinchen.co —
+# sites/personal/nginx.conf does the actual host-based routing to the private
+# `admin` service vs. the public site. Nothing admin-specific happens here.
+http://admin.rinchen.co {
+	reverse_proxy localhost:3001
+}
+
+http:// {
+	respond "Homelab server is running. Sites: rinchen.co" 200
+}

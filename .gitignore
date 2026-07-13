@@ -6,3 +6,5 @@ npm-debug.log*
 .DS_Store
 sites/*/build/
 sites/*/node_modules/
+__pycache__/
+*.pyc
