@@ -7,6 +7,12 @@ self-hosted social feature at `/social` — sign up, post a photo with a caption
 See [`server/README.md`](server/README.md) for the API, and the root [README.md](../../README.md) for
 how the two services are wired together with Docker/nginx.
 
+There's also a private admin dashboard at `admin.rinchen.co` (never reachable on `rinchen.co`) for
+checking deployment status and tailing container logs — see [`admin/README.md`](admin/README.md).
+It's served by the same `web`/nginx container via a separate `server{}` block keyed on the `Host`
+header, backed by two more compose services (`admin` and `docker-proxy`, both internal-only, no
+host ports).
+
 ### Running the social feature locally
 
 The frontend expects the API on `http://localhost:4000` in development (see the `proxy` field in
