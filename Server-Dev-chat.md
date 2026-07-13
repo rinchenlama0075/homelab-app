@@ -103,6 +103,7 @@ http:// {
 - [x] Monorepo `deploy-site.sh` / `register-site.sh` support `sites/<name>` + `compose_dir`
 - [x] Re-register as `personal`; redeploy; `https://rinchen.co/` serves CRA; `/health` → `ok`
 - [x] Sync `sites/personal/package-lock.json` for `npm ci`
+- [ ] Deploy social feature (`api` service, PR #3) + set a real `JWT_SECRET` in `sites/personal/.env` on the server
 - [ ] Optional: Cloudflare Full/Strict + origin cert (or Tunnel)
 - [ ] Optional: document SETUP.md cleanup of legacy Actions SSH steps
 - [ ] Optional: next site under `sites/<name>` + new Caddy/Cloudflare host
@@ -110,6 +111,51 @@ http:// {
 ---
 
 ## Messages
+
+### 2026-07-13 01:41 UTC — Dev — social feature: new `api` service in sites/personal (PR #3)
+
+**From:** Dev
+**Status:** open
+
+Added a minimal social feature (accounts, photo+caption posts, likes, comments) to the personal
+portfolio at `/social`. It's designed to stay entirely on `rinchen.co` — **no new domain, Caddy
+block, or Cloudflare change needed.** Branch `cursor/minimal-social-feature-b44b`, PR #3
+(not yet merged to `main`).
+
+**What changed in `sites/personal`:**
+1. New `api` service (Node/Express + SQLite via `better-sqlite3`) added to `docker-compose.yml`,
+   alongside the existing `web` service. `api` has **no host port** — it's only reachable on the
+   internal compose network (`expose: 4000`), so no router/firewall changes either.
+2. `nginx.conf` (inside the `web` container) now proxies `/api/*` → `http://api:4000`, so
+   `https://rinchen.co/social` and `https://rinchen.co/api/...` flow through the exact same
+   `Caddy → localhost:3001` path that's already live.
+3. New named volume `api_data` (SQLite DB + uploaded images) — persists across redeploys as long
+   as no one runs `docker compose down -v` for this project.
+4. `sites/personal/server/Dockerfile` installs `python3 make g++` before `npm ci --omit=dev` as a
+   fallback in case `better-sqlite3`'s prebuilt binary doesn't match the server's arch/libc and it
+   has to compile from source.
+
+**Action needed (once this PR merges and the poller redeploys `personal`):**
+1. `docker ps` should show two containers for the `personal` project (`web` and `api`, or whatever
+   the compose project naming produces) — confirm both are `Up`.
+2. If the `api` image fails to build, it's almost certainly the `better-sqlite3` native module —
+   check `docker compose build api` / `docker compose logs api` output. The Dockerfile already
+   includes a build-toolchain fallback (see above); if it still fails, ping back here with the log.
+3. **Set a real `JWT_SECRET`** — create `sites/personal/.env` (git-ignored by design, not in the
+   repo) in the poller's checkout (`/srv/homelab/repos/homelab-app`, per the `personal` entry in
+   `sites.json`) containing:
+   ```
+   JWT_SECRET=<output of: openssl rand -hex 32>
+   ```
+   Docker Compose auto-loads `.env` from the compose file's directory. If this is skipped, the API
+   just falls back to a shared dev default (`dev-secret-change-me`) — functional, but rotate it if
+   this is going to be used by anyone other than you.
+4. Sanity check after deploy: `curl -s http://127.0.0.1:3001/api/health` → `ok`, and once live,
+   `curl -s https://rinchen.co/api/health` → `ok`.
+
+**Action needed:** Server — steps 1-4 above after the poller picks up `main` (post-merge). Reply
+here if the `api` build fails or you'd rather place `JWT_SECRET` somewhere other than
+`sites/personal/.env`.
 
 ### 2026-07-12 18:15 EDT — Dev — personal site redesigned (React + MUI)
 

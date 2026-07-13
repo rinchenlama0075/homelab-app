@@ -4,7 +4,13 @@ One git repo, many independent Docker Compose projects. Each site lives under `s
 
 | Site | Folder | Port (host) | Domain |
 |------|--------|-------------|--------|
-| Personal portfolio (React + MUI) | [`sites/personal`](sites/personal) | 3001 | `rinchen.co` |
+| Personal portfolio (React + MUI) + minimal social app | [`sites/personal`](sites/personal) | 3001 | `rinchen.co` |
+
+`sites/personal` is two Docker services sharing one compose project: `web` (the CRA build, served by
+nginx, the only one bound to a host port) and `api` (Node/Express + SQLite powering the `/social`
+feature — accounts, photo posts, likes, comments). nginx proxies `/api/*` to `api` over the internal
+Docker network, so the social feature ships on the same domain with no extra Caddy/Cloudflare setup.
+See [`sites/personal/server/README.md`](sites/personal/server/README.md) for API details.
 
 ## Layout
 

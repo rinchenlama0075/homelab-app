@@ -27,6 +27,7 @@ export const navLinks = [
   { label: "Projects", to: "/projects" },
   { label: "Resume", to: "/resume" },
   { label: "Blogs", to: "/blogs" },
+  { label: "App", to: "/social" },
 ];
 
 export const workItems = [

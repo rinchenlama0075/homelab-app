@@ -1,6 +1,7 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import theme from "./theme";
+import { AuthProvider } from "./context/AuthContext";
 import SiteLayout from "./layout/SiteLayout";
 import Home from "./pages/Home";
 import Work from "./pages/Work";
@@ -8,6 +9,20 @@ import Projects from "./pages/Projects";
 import Resume from "./pages/Resume";
 import BlogIndex from "./pages/BlogIndex";
 import BlogHackeo from "./pages/BlogHackeo";
+import SocialFeed from "./pages/social/SocialFeed";
+import SocialLogin from "./pages/social/SocialLogin";
+import SocialSignup from "./pages/social/SocialSignup";
+import RequireAuth from "./components/social/RequireAuth";
+
+// AuthProvider only wraps the /social/* subtree so the rest of the portfolio
+// never makes an auth-check request or depends on the social feature.
+function SocialSection() {
+  return (
+    <AuthProvider>
+      <Outlet />
+    </AuthProvider>
+  );
+}
 
 export default function App() {
   return (
@@ -22,6 +37,18 @@ export default function App() {
             <Route path="resume" element={<Resume />} />
             <Route path="blogs" element={<BlogIndex />} />
             <Route path="blogs/hackeo" element={<BlogHackeo />} />
+            <Route path="social" element={<SocialSection />}>
+              <Route path="login" element={<SocialLogin />} />
+              <Route path="signup" element={<SocialSignup />} />
+              <Route
+                index
+                element={
+                  <RequireAuth>
+                    <SocialFeed />
+                  </RequireAuth>
+                }
+              />
+            </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

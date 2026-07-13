@@ -1,6 +1,26 @@
-# Getting Started with Create React App
+# Personal portfolio + social app
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+
+Alongside the portfolio pages (Home, Work, Projects, Resume, Blogs), this site also hosts a minimal
+self-hosted social feature at `/social` — sign up, post a photo with a caption, like, and comment.
+See [`server/README.md`](server/README.md) for the API, and the root [README.md](../../README.md) for
+how the two services are wired together with Docker/nginx.
+
+### Running the social feature locally
+
+The frontend expects the API on `http://localhost:4000` in development (see the `proxy` field in
+`package.json`). In two terminals:
+
+```bash
+cd sites/personal/server
+npm install
+npm start          # API on http://localhost:4000
+
+cd sites/personal
+npm install
+npm start           # React app on http://localhost:3000, proxies /api to the server above
+```
 
 ## Available Scripts
 
