@@ -15,7 +15,7 @@ import { createPost } from "../../api/socialApi";
 
 const MAX_CAPTION_LENGTH = 280;
 
-export default function PostComposer({ onPostCreated }) {
+export default function PostComposer({ commitmentId, onPostCreated }) {
   const fileInputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -41,11 +41,15 @@ export default function PostComposer({ onPostCreated }) {
       setError("Please choose a photo to share.");
       return;
     }
+    if (!caption.trim()) {
+      setError("Add a comment about your check-in.");
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
     try {
-      const post = await createPost(file, caption);
+      const post = await createPost(commitmentId, file, caption);
       onPostCreated?.(post);
       setCaption("");
       clearFile();
@@ -60,7 +64,7 @@ export default function PostComposer({ onPostCreated }) {
     <Card component="form" onSubmit={handleSubmit} sx={{ mb: 4 }}>
       <CardContent>
         <Typography variant="overline" color="secondary" sx={{ fontWeight: 700 }}>
-          Share something
+          Check in
         </Typography>
 
         {error && (
@@ -113,18 +117,19 @@ export default function PostComposer({ onPostCreated }) {
           )}
 
           <TextField
-            placeholder="Add a caption…"
+            placeholder="How did it go?"
             multiline
             minRows={2}
             maxRows={5}
             value={caption}
             onChange={(event) => setCaption(event.target.value.slice(0, MAX_CAPTION_LENGTH))}
             helperText={`${caption.length}/${MAX_CAPTION_LENGTH}`}
+            required
           />
 
           <Box>
             <Button type="submit" variant="contained" color="secondary" disabled={submitting}>
-              {submitting ? "Posting…" : "Post"}
+              {submitting ? "Posting…" : "Check in"}
             </Button>
           </Box>
         </Stack>

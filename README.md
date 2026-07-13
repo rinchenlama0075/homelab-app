@@ -4,11 +4,11 @@ One git repo, many independent Docker Compose projects. Each site lives under `s
 
 | Site | Folder | Port (host) | Domain |
 |------|--------|-------------|--------|
-| Personal portfolio (React + MUI) + minimal social app | [`sites/personal`](sites/personal) | 3001 | `rinchen.co` |
+| Personal portfolio (React + MUI) + social contract app | [`sites/personal`](sites/personal) | 3001 | `rinchen.co` |
 
 `sites/personal` is four Docker services sharing one compose project: `web` (the CRA build, served
 by nginx, the only one bound to a host port), `api` (Node/Express + SQLite powering the `/social`
-feature — accounts, photo posts, likes, comments), `admin` (a private, host-gated dashboard for
+feature — accounts, commitments, check-in posts, likes, comments), `admin` (a private, host-gated dashboard for
 deployment status/logs — see below), and `docker-proxy` (a locked-down, read-only view of the
 Docker API that only `admin` can reach). nginx proxies `/api/*` to `api` over the internal Docker
 network, so the social feature ships on the same domain with no extra Caddy/Cloudflare setup.

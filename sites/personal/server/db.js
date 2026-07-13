@@ -19,6 +19,15 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  CREATE TABLE IF NOT EXISTS commitments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    description TEXT,
+    target_per_week INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   CREATE TABLE IF NOT EXISTS posts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -43,5 +52,11 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
+
+// SQLite has no "ADD COLUMN IF NOT EXISTS", so guard the migration manually.
+const postsColumns = db.prepare("PRAGMA table_info(posts)").all();
+if (!postsColumns.some((column) => column.name === "commitment_id")) {
+  db.exec("ALTER TABLE posts ADD COLUMN commitment_id INTEGER REFERENCES commitments(id)");
+}
 
 module.exports = { db, DATA_DIR, UPLOADS_DIR };

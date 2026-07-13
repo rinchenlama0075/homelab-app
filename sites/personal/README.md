@@ -3,9 +3,10 @@
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 Alongside the portfolio pages (Home, Work, Projects, Resume, Blogs), this site also hosts a minimal
-self-hosted social feature at `/social` — sign up, post a photo with a caption, like, and comment.
-See [`server/README.md`](server/README.md) for the API, and the root [README.md](../../README.md) for
-how the two services are wired together with Docker/nginx.
+self-hosted "social contract" app at `/social` — sign up, make a commitment (e.g. "Go to the gym,
+5x/week"), check in with a photo and a comment each time you follow through, and like/comment on
+other people's check-ins. See [`server/README.md`](server/README.md) for the API, and the root
+[README.md](../../README.md) for how the two services are wired together with Docker/nginx.
 
 There's also a private admin dashboard at `admin.rinchen.co` (never reachable on `rinchen.co`) for
 checking deployment status and tailing container logs — see [`admin/README.md`](admin/README.md).

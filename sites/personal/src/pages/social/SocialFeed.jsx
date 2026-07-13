@@ -1,28 +1,32 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link as RouterLink } from "react-router-dom";
 import {
   Alert,
-  Box,
   Button,
+  Card,
+  CardContent,
   CircularProgress,
   Container,
   Stack,
   Typography,
 } from "@mui/material";
-import LogoutIcon from "@mui/icons-material/Logout";
-import { useAuth } from "../../context/AuthContext";
-import { getFeed } from "../../api/socialApi";
-import PostComposer from "../../components/social/PostComposer";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import AppHeader from "../../components/social/AppHeader";
+import { getCommitments, getFeed } from "../../api/socialApi";
 import PostCard from "../../components/social/PostCard";
 
 export default function SocialFeed() {
-  const { user, logout } = useAuth();
   const [posts, setPosts] = useState(null);
+  const [myCommitments, setMyCommitments] = useState(null);
   const [error, setError] = useState(null);
 
   const loadFeed = useCallback(() => {
     setError(null);
-    getFeed()
-      .then(setPosts)
+    Promise.all([getFeed(), getCommitments({ mine: true })])
+      .then(([loadedPosts, loadedCommitments]) => {
+        setPosts(loadedPosts);
+        setMyCommitments(loadedCommitments);
+      })
       .catch((err) => setError(err.message));
   }, []);
 
@@ -30,35 +34,71 @@ export default function SocialFeed() {
     loadFeed();
   }, [loadFeed]);
 
-  function handlePostCreated(post) {
-    setPosts((prev) => [post, ...(prev || [])]);
-  }
-
   return (
     <Container maxWidth="sm" sx={{ py: { xs: 6, md: 10 } }}>
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="flex-start"
-        sx={{ mb: 3 }}
-      >
-        <Box>
-          <Typography variant="overline" color="secondary" sx={{ fontWeight: 700 }}>
-            The App
-          </Typography>
-          <Typography variant="h2">Feed</Typography>
-          <Typography variant="body1" color="text.secondary">
-            Signed in as <strong>{user?.username}</strong>
-          </Typography>
-        </Box>
-        <Button startIcon={<LogoutIcon />} onClick={logout} size="small">
-          Log out
-        </Button>
-      </Stack>
+      <AppHeader />
 
-      <PostComposer onPostCreated={handlePostCreated} />
+      <Typography variant="h2" sx={{ mb: 3 }}>
+        Feed
+      </Typography>
 
-      {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+      {myCommitments?.length === 0 && (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="overline" color="secondary" sx={{ fontWeight: 700 }}>
+              Get started
+            </Typography>
+            <Typography variant="h6" sx={{ mb: 1 }}>
+              Make a commitment
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Pick something you'll show up for — "Go to the gym, 5x a week" — then check in with
+              a photo and a comment each time you do it. Other people can follow along, like, and
+              comment on your progress.
+            </Typography>
+            <Button
+              component={RouterLink}
+              to="/social/commitments"
+              variant="contained"
+              color="secondary"
+              endIcon={<ArrowForwardIcon />}
+            >
+              Make your first commitment
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {myCommitments?.length > 0 && (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+              spacing={2}
+            >
+              <Typography variant="body2" color="text.secondary">
+                Time to check in on one of your commitments?
+              </Typography>
+              <Button
+                component={RouterLink}
+                to="/social/commitments"
+                size="small"
+                endIcon={<ArrowForwardIcon />}
+              >
+                My Commitments
+              </Button>
+            </Stack>
+          </CardContent>
+        </Card>
+      )}
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
 
       {posts === null && !error && (
         <Stack alignItems="center" sx={{ py: 6 }}>
@@ -68,7 +108,7 @@ export default function SocialFeed() {
 
       {posts?.length === 0 && (
         <Typography color="text.secondary" align="center" sx={{ py: 6 }}>
-          No posts yet — share the first one!
+          No check-ins yet — be the first to share one!
         </Typography>
       )}
 

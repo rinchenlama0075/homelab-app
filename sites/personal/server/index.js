@@ -4,6 +4,7 @@ const { UPLOADS_DIR } = require("./db");
 const { attachUser } = require("./middleware/auth");
 const authRouter = require("./routes/auth");
 const postsRouter = require("./routes/posts");
+const commitmentsRouter = require("./routes/commitments");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -15,6 +16,7 @@ app.use(attachUser);
 app.get("/api/health", (_req, res) => res.type("text").send("ok"));
 
 app.use("/api/auth", authRouter);
+app.use("/api/commitments", commitmentsRouter);
 app.use("/api/posts", postsRouter);
 app.use("/api/uploads", express.static(UPLOADS_DIR));
 

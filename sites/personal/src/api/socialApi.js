@@ -44,15 +44,33 @@ export function logout() {
   return request("/auth/logout", { method: "POST" });
 }
 
-export function getFeed() {
-  return request("/posts").then((data) => data.posts);
+export function getFeed(commitmentId) {
+  const query = commitmentId ? `?commitmentId=${commitmentId}` : "";
+  return request(`/posts${query}`).then((data) => data.posts);
 }
 
-export function createPost(imageFile, caption) {
+export function createPost(commitmentId, imageFile, caption) {
   const formData = new FormData();
+  formData.append("commitmentId", commitmentId);
   formData.append("image", imageFile);
   formData.append("caption", caption || "");
   return request("/posts", { method: "POST", body: formData }).then((data) => data.post);
+}
+
+export function getCommitments({ mine } = {}) {
+  const query = mine ? "?mine=1" : "";
+  return request(`/commitments${query}`).then((data) => data.commitments);
+}
+
+export function getCommitment(id) {
+  return request(`/commitments/${id}`).then((data) => data.commitment);
+}
+
+export function createCommitment({ title, description, targetPerWeek }) {
+  return request("/commitments", {
+    method: "POST",
+    body: JSON.stringify({ title, description, targetPerWeek }),
+  }).then((data) => data.commitment);
 }
 
 export function toggleLike(postId) {

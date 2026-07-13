@@ -12,6 +12,8 @@ import BlogHackeo from "./pages/BlogHackeo";
 import SocialFeed from "./pages/social/SocialFeed";
 import SocialLogin from "./pages/social/SocialLogin";
 import SocialSignup from "./pages/social/SocialSignup";
+import Commitments from "./pages/social/Commitments";
+import CommitmentDetail from "./pages/social/CommitmentDetail";
 import RequireAuth from "./components/social/RequireAuth";
 
 // AuthProvider only wraps the /social/* subtree so the rest of the portfolio
@@ -45,6 +47,22 @@ export default function App() {
                 element={
                   <RequireAuth>
                     <SocialFeed />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="commitments"
+                element={
+                  <RequireAuth>
+                    <Commitments />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="commitments/:id"
+                element={
+                  <RequireAuth>
+                    <CommitmentDetail />
                   </RequireAuth>
                 }
               />

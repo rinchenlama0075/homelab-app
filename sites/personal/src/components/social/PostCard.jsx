@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { Link as RouterLink } from "react-router-dom";
 import {
   Avatar,
   Box,
   Card,
   CardContent,
   CardMedia,
+  Chip,
   Collapse,
   Divider,
   IconButton,
@@ -16,6 +18,7 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
 import SendIcon from "@mui/icons-material/Send";
+import FlagIcon from "@mui/icons-material/Flag";
 import { addComment, getComments, toggleLike } from "../../api/socialApi";
 import formatRelativeTime from "../../utils/formatRelativeTime";
 import { amber } from "../../theme";
@@ -108,6 +111,24 @@ export default function PostCard({ post }) {
       />
 
       <CardContent>
+        {post.commitment && (
+          <Chip
+            component={RouterLink}
+            to={`/social/commitments/${post.commitment.id}`}
+            icon={<FlagIcon fontSize="small" />}
+            label={`${post.commitment.title} · ${post.commitment.targetPerWeek}x/week`}
+            size="small"
+            clickable
+            sx={{
+              mb: 1.5,
+              bgcolor: amber,
+              color: "#fffaf3",
+              fontWeight: 700,
+              "& .MuiChip-icon": { color: "#fffaf3" },
+            }}
+          />
+        )}
+
         <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: post.caption ? 1 : 0 }}>
           <IconButton onClick={handleToggleLike} aria-label="Like post" size="small">
             {liked ? <FavoriteIcon fontSize="small" sx={{ color: amber }} /> : <FavoriteBorderIcon fontSize="small" />}
