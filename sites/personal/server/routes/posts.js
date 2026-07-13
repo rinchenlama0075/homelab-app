@@ -39,25 +39,37 @@ function serializePost(row, currentUserId) {
     likeCount: row.like_count,
     commentCount: row.comment_count,
     likedByMe: currentUserId ? row.liked_by_me === 1 : false,
+    commitment: row.commitment_id
+      ? { id: row.commitment_id, title: row.commitment_title, targetPerWeek: row.commitment_target_per_week }
+      : null,
   };
 }
 
+const SELECT_POST_FIELDS = `
+  p.id, p.caption, p.image_filename, p.created_at, p.user_id,
+  u.username,
+  p.commitment_id, cm.title AS commitment_title, cm.target_per_week AS commitment_target_per_week
+`;
+
 router.get("/", (req, res) => {
   const userId = req.user?.id || 0;
+  const commitmentId = req.query.commitmentId ? Number(req.query.commitmentId) : null;
+
   const rows = db
     .prepare(
       `SELECT
-        p.id, p.caption, p.image_filename, p.created_at, p.user_id,
-        u.username,
+        ${SELECT_POST_FIELDS},
         (SELECT COUNT(*) FROM likes l WHERE l.post_id = p.id) AS like_count,
         (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) AS comment_count,
         EXISTS(SELECT 1 FROM likes l2 WHERE l2.post_id = p.id AND l2.user_id = ?) AS liked_by_me
       FROM posts p
       JOIN users u ON u.id = p.user_id
+      LEFT JOIN commitments cm ON cm.id = p.commitment_id
+      ${commitmentId ? "WHERE p.commitment_id = ?" : ""}
       ORDER BY p.created_at DESC, p.id DESC
       LIMIT 50`
     )
-    .all(userId);
+    .all(...(commitmentId ? [userId, commitmentId] : [userId]));
 
   res.json({ posts: rows.map((row) => serializePost(row, req.user?.id)) });
 });
@@ -67,7 +79,25 @@ router.post("/", requireAuth, upload.single("image"), (req, res) => {
     return res.status(400).json({ error: "An image is required." });
   }
 
+  const commitmentId = Number(req.body.commitmentId);
+  if (!Number.isInteger(commitmentId) || commitmentId <= 0) {
+    return res.status(400).json({ error: "A commitment is required to check in." });
+  }
+
+  const commitment = db
+    .prepare("SELECT id, user_id FROM commitments WHERE id = ?")
+    .get(commitmentId);
+  if (!commitment) {
+    return res.status(404).json({ error: "Commitment not found." });
+  }
+  if (commitment.user_id !== req.user.id) {
+    return res.status(403).json({ error: "You can only check in on your own commitments." });
+  }
+
   const caption = typeof req.body.caption === "string" ? req.body.caption.trim() : "";
+  if (!caption) {
+    return res.status(400).json({ error: "Add a comment about your check-in." });
+  }
   if (caption.length > MAX_CAPTION_LENGTH) {
     return res
       .status(400)
@@ -75,14 +105,19 @@ router.post("/", requireAuth, upload.single("image"), (req, res) => {
   }
 
   const result = db
-    .prepare("INSERT INTO posts (user_id, image_filename, caption) VALUES (?, ?, ?)")
-    .run(req.user.id, req.file.filename, caption || null);
+    .prepare(
+      "INSERT INTO posts (user_id, image_filename, caption, commitment_id) VALUES (?, ?, ?, ?)"
+    )
+    .run(req.user.id, req.file.filename, caption, commitmentId);
 
   const row = db
     .prepare(
-      `SELECT p.id, p.caption, p.image_filename, p.created_at, p.user_id, u.username,
+      `SELECT ${SELECT_POST_FIELDS},
         0 AS like_count, 0 AS comment_count, 0 AS liked_by_me
-       FROM posts p JOIN users u ON u.id = p.user_id WHERE p.id = ?`
+       FROM posts p
+       JOIN users u ON u.id = p.user_id
+       LEFT JOIN commitments cm ON cm.id = p.commitment_id
+       WHERE p.id = ?`
     )
     .get(result.lastInsertRowid);
 
