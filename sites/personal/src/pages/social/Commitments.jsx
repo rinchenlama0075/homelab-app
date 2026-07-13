@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, CircularProgress, Container, Divider, Stack, Typography } from "@mui/material";
+import {
+  Alert,
+  Button,
+  CircularProgress,
+  Container,
+  Divider,
+  Stack,
+  Typography,
+} from "@mui/material";
 import AppHeader from "../../components/social/AppHeader";
 import CommitmentComposer from "../../components/social/CommitmentComposer";
 import CommitmentCard from "../../components/social/CommitmentCard";
@@ -40,7 +48,15 @@ export default function Commitments() {
       <CommitmentComposer onCreated={handleCreated} />
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert
+          severity="error"
+          sx={{ mb: 3 }}
+          action={
+            <Button color="inherit" size="small" onClick={loadCommitments}>
+              Try again
+            </Button>
+          }
+        >
           {error}
         </Alert>
       )}

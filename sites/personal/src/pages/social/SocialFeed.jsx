@@ -113,7 +113,15 @@ export default function SocialFeed() {
       )}
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert
+          severity="error"
+          sx={{ mb: 3 }}
+          action={
+            <Button color="inherit" size="small" onClick={loadFeed}>
+              Try again
+            </Button>
+          }
+        >
           {error}
         </Alert>
       )}
