@@ -2,8 +2,12 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-RUN npm install --omit=dev
+# better-sqlite3 ships prebuilt binaries for common platforms, but falls back to
+# compiling from source if none match — keep the toolchain around just in case.
+RUN apk add --no-cache python3 make g++
+
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 
 COPY . .
 
