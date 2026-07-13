@@ -3,6 +3,7 @@ import { Link as RouterLink, useParams } from "react-router-dom";
 import {
   Alert,
   Box,
+  Button,
   CircularProgress,
   Container,
   Divider,
@@ -51,7 +52,16 @@ export default function CommitmentDetail() {
     return (
       <Container maxWidth="sm" sx={{ py: { xs: 6, md: 10 } }}>
         <AppHeader />
-        <Alert severity="error">{error}</Alert>
+        <Alert
+          severity="error"
+          action={
+            <Button color="inherit" size="small" onClick={load}>
+              Try again
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
       </Container>
     );
   }

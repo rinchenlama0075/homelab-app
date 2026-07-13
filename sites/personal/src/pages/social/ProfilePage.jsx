@@ -4,6 +4,7 @@ import {
   Alert,
   Avatar,
   Box,
+  Button,
   Card,
   CardContent,
   CircularProgress,
@@ -100,7 +101,16 @@ export default function ProfilePage() {
     return (
       <Container maxWidth="sm" sx={{ py: { xs: 6, md: 10 } }}>
         <AppHeader />
-        <Alert severity="error">{error}</Alert>
+        <Alert
+          severity="error"
+          action={
+            <Button color="inherit" size="small" onClick={load}>
+              Try again
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
       </Container>
     );
   }
