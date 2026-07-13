@@ -14,6 +14,7 @@ import SocialLogin from "./pages/social/SocialLogin";
 import SocialSignup from "./pages/social/SocialSignup";
 import Commitments from "./pages/social/Commitments";
 import CommitmentDetail from "./pages/social/CommitmentDetail";
+import ProfilePage from "./pages/social/ProfilePage";
 import RequireAuth from "./components/social/RequireAuth";
 
 // AuthProvider only wraps the /social/* subtree so the rest of the portfolio
@@ -63,6 +64,14 @@ export default function App() {
                 element={
                   <RequireAuth>
                     <CommitmentDetail />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="profile/:username"
+                element={
+                  <RequireAuth>
+                    <ProfilePage />
                   </RequireAuth>
                 }
               />

@@ -4,6 +4,11 @@ const path = require("path");
 const multer = require("multer");
 const { db, UPLOADS_DIR } = require("../db");
 const { requireAuth } = require("../middleware/auth");
+const {
+  evaluateAfterCheckIn,
+  evaluateAfterLike,
+  evaluateAfterComment,
+} = require("../lib/badges");
 
 const router = express.Router();
 
@@ -30,10 +35,13 @@ const upload = multer({
 });
 
 function serializePost(row, currentUserId) {
+  const isMilestone = row.type === "milestone";
   return {
     id: row.id,
+    type: row.type || "check_in",
     caption: row.caption,
-    imageUrl: `/api/uploads/${row.image_filename}`,
+    imageUrl: isMilestone ? null : `/api/uploads/${row.image_filename}`,
+    milestone: isMilestone && row.milestone_meta ? JSON.parse(row.milestone_meta) : null,
     createdAt: row.created_at,
     author: { id: row.user_id, username: row.username },
     likeCount: row.like_count,
@@ -46,7 +54,7 @@ function serializePost(row, currentUserId) {
 }
 
 const SELECT_POST_FIELDS = `
-  p.id, p.caption, p.image_filename, p.created_at, p.user_id,
+  p.id, p.caption, p.image_filename, p.created_at, p.user_id, p.type, p.milestone_meta,
   u.username,
   p.commitment_id, cm.title AS commitment_title, cm.target_per_week AS commitment_target_per_week
 `;
@@ -84,15 +92,21 @@ router.post("/", requireAuth, upload.single("image"), (req, res) => {
     return res.status(400).json({ error: "A commitment is required to check in." });
   }
 
-  const commitment = db
-    .prepare("SELECT id, user_id FROM commitments WHERE id = ?")
+  const commitmentRow = db
+    .prepare("SELECT id, user_id, title, target_per_week FROM commitments WHERE id = ?")
     .get(commitmentId);
-  if (!commitment) {
+  if (!commitmentRow) {
     return res.status(404).json({ error: "Commitment not found." });
   }
-  if (commitment.user_id !== req.user.id) {
+  if (commitmentRow.user_id !== req.user.id) {
     return res.status(403).json({ error: "You can only check in on your own commitments." });
   }
+  const commitment = {
+    id: commitmentRow.id,
+    userId: commitmentRow.user_id,
+    title: commitmentRow.title,
+    targetPerWeek: commitmentRow.target_per_week,
+  };
 
   const caption = typeof req.body.caption === "string" ? req.body.caption.trim() : "";
   if (!caption) {
@@ -106,9 +120,15 @@ router.post("/", requireAuth, upload.single("image"), (req, res) => {
 
   const result = db
     .prepare(
-      "INSERT INTO posts (user_id, image_filename, caption, commitment_id) VALUES (?, ?, ?, ?)"
+      "INSERT INTO posts (user_id, image_filename, caption, commitment_id, type) VALUES (?, ?, ?, ?, 'check_in')"
     )
     .run(req.user.id, req.file.filename, caption, commitmentId);
+
+  const badgesEarned = evaluateAfterCheckIn(db, {
+    user: req.user,
+    commitment,
+    postId: result.lastInsertRowid,
+  });
 
   const row = db
     .prepare(
@@ -121,7 +141,15 @@ router.post("/", requireAuth, upload.single("image"), (req, res) => {
     )
     .get(result.lastInsertRowid);
 
-  res.status(201).json({ post: serializePost(row, req.user.id) });
+  res.status(201).json({
+    post: serializePost(row, req.user.id),
+    badgesEarned: badgesEarned.map((badge) => ({
+      code: badge.code,
+      name: badge.name,
+      emoji: badge.emoji,
+      description: badge.description,
+    })),
+  });
 });
 
 router.post("/:id/like", requireAuth, (req, res) => {
@@ -135,17 +163,25 @@ router.post("/:id/like", requireAuth, (req, res) => {
     .prepare("SELECT id FROM likes WHERE post_id = ? AND user_id = ?")
     .get(postId, req.user.id);
 
+  let badgeEarned = null;
   if (existing) {
     db.prepare("DELETE FROM likes WHERE id = ?").run(existing.id);
   } else {
     db.prepare("INSERT INTO likes (post_id, user_id) VALUES (?, ?)").run(postId, req.user.id);
+    badgeEarned = evaluateAfterLike(db, { user: req.user });
   }
 
   const likeCount = db
     .prepare("SELECT COUNT(*) AS count FROM likes WHERE post_id = ?")
     .get(postId).count;
 
-  res.json({ liked: !existing, likeCount });
+  res.json({
+    liked: !existing,
+    likeCount,
+    badgeEarned: badgeEarned
+      ? { code: badgeEarned.code, name: badgeEarned.name, emoji: badgeEarned.emoji }
+      : null,
+  });
 });
 
 router.get("/:id/comments", (req, res) => {
@@ -191,6 +227,8 @@ router.post("/:id/comments", requireAuth, (req, res) => {
     .prepare("INSERT INTO comments (post_id, user_id, body) VALUES (?, ?, ?)")
     .run(postId, req.user.id, body);
 
+  const badgeEarned = evaluateAfterComment(db, { user: req.user });
+
   const row = db
     .prepare(
       `SELECT c.id, c.body, c.created_at, c.user_id, u.username
@@ -205,6 +243,9 @@ router.post("/:id/comments", requireAuth, (req, res) => {
       createdAt: row.created_at,
       author: { id: row.user_id, username: row.username },
     },
+    badgeEarned: badgeEarned
+      ? { code: badgeEarned.code, name: badgeEarned.name, emoji: badgeEarned.emoji }
+      : null,
   });
 });
 

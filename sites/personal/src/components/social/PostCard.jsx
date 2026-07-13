@@ -27,7 +27,32 @@ function initials(username) {
   return username?.slice(0, 2).toUpperCase() || "?";
 }
 
+function MilestoneHero({ milestone }) {
+  if (!milestone) return null;
+  return (
+    <Box
+      sx={{
+        py: 4,
+        px: 2,
+        textAlign: "center",
+        background: `linear-gradient(135deg, ${amber} 0%, #e8a84a 100%)`,
+        color: "#fffaf3",
+      }}
+    >
+      <Box sx={{ fontSize: 44, lineHeight: 1 }}>{milestone.emoji}</Box>
+      <Typography variant="h6" sx={{ mt: 1, fontWeight: 700 }}>
+        {milestone.badgeName}
+      </Typography>
+      <Typography variant="body2" sx={{ opacity: 0.9 }}>
+        {milestone.description}
+        {milestone.commitmentTitle ? ` · "${milestone.commitmentTitle}"` : ""}
+      </Typography>
+    </Box>
+  );
+}
+
 export default function PostCard({ post }) {
+  const isMilestone = post.type === "milestone";
   const [liked, setLiked] = useState(post.likedByMe);
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [likeBusy, setLikeBusy] = useState(false);
@@ -93,22 +118,35 @@ export default function PostCard({ post }) {
         <Avatar sx={{ bgcolor: amber, width: 36, height: 36, fontSize: 14 }}>
           {initials(post.author.username)}
         </Avatar>
-        <Box>
-          <Typography variant="subtitle2" fontWeight={700}>
-            {post.author.username}
-          </Typography>
+        <Box sx={{ flexGrow: 1 }}>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Typography variant="subtitle2" fontWeight={700}>
+              {post.author.username}
+            </Typography>
+            {isMilestone && (
+              <Chip
+                label="Milestone"
+                size="small"
+                sx={{ bgcolor: amber, color: "#fffaf3", fontWeight: 700, height: 20 }}
+              />
+            )}
+          </Stack>
           <Typography variant="caption" color="text.secondary">
             {formatRelativeTime(post.createdAt)}
           </Typography>
         </Box>
       </Stack>
 
-      <CardMedia
-        component="img"
-        image={post.imageUrl}
-        alt={post.caption || `Post by ${post.author.username}`}
-        sx={{ maxHeight: 560, objectFit: "cover" }}
-      />
+      {isMilestone ? (
+        <MilestoneHero milestone={post.milestone} />
+      ) : (
+        <CardMedia
+          component="img"
+          image={post.imageUrl}
+          alt={post.caption || `Post by ${post.author.username}`}
+          sx={{ maxHeight: 560, objectFit: "cover" }}
+        />
+      )}
 
       <CardContent>
         {post.commitment && (
@@ -129,7 +167,12 @@ export default function PostCard({ post }) {
           />
         )}
 
-        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: post.caption ? 1 : 0 }}>
+        <Stack
+          direction="row"
+          spacing={0.5}
+          alignItems="center"
+          sx={{ mb: !isMilestone && post.caption ? 1 : 0 }}
+        >
           <IconButton onClick={handleToggleLike} aria-label="Like post" size="small">
             {liked ? <FavoriteIcon fontSize="small" sx={{ color: amber }} /> : <FavoriteBorderIcon fontSize="small" />}
           </IconButton>
@@ -145,7 +188,7 @@ export default function PostCard({ post }) {
           </Typography>
         </Stack>
 
-        {post.caption && (
+        {!isMilestone && post.caption && (
           <Typography variant="body1" sx={{ lineHeight: 1.6 }}>
             <Typography component="span" fontWeight={700}>
               {post.author.username}

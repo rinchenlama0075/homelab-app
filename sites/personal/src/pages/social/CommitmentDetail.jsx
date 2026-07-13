@@ -14,6 +14,8 @@ import {
 import AppHeader from "../../components/social/AppHeader";
 import PostComposer from "../../components/social/PostComposer";
 import PostCard from "../../components/social/PostCard";
+import StreakFlame from "../../components/social/StreakFlame";
+import AtRiskBanner from "../../components/social/AtRiskBanner";
 import { getCommitment, getFeed } from "../../api/socialApi";
 import { useAuth } from "../../context/AuthContext";
 
@@ -40,15 +42,9 @@ export default function CommitmentDetail() {
 
   function handlePostCreated(post) {
     setPosts((prev) => [post, ...(prev || [])]);
-    setCommitment((prev) =>
-      prev
-        ? {
-            ...prev,
-            checkInsThisWeek: prev.checkInsThisWeek + 1,
-            totalCheckIns: prev.totalCheckIns + 1,
-          }
-        : prev
-    );
+    // Re-fetch rather than patch counts locally: streak/at-risk state depends
+    // on the full check-in history, not just a simple increment.
+    getCommitment(id).then(setCommitment).catch(() => {});
   }
 
   if (error) {
@@ -90,10 +86,35 @@ export default function CommitmentDetail() {
         ← All commitments
       </Link>
 
-      <Typography variant="h2">{commitment.title}</Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
-        @{commitment.owner.username} · {commitment.targetPerWeek}x / week
-      </Typography>
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+        <Box>
+          <Typography variant="h2">{commitment.title}</Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
+            @{commitment.owner.username} · {commitment.targetPerWeek}x / week
+          </Typography>
+        </Box>
+        <StreakFlame
+          weeks={commitment.currentStreakWeeks}
+          longest={commitment.longestStreakWeeks}
+          size="medium"
+        />
+      </Stack>
+
+      {commitment.longestStreakWeeks > 0 && (
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          Longest streak: {commitment.longestStreakWeeks} week
+          {commitment.longestStreakWeeks === 1 ? "" : "s"}
+        </Typography>
+      )}
+
+      {commitment.isAtRisk && (
+        <AtRiskBanner
+          message={`${commitment.checkInsNeededThisWeek} more check-in${
+            commitment.checkInsNeededThisWeek === 1 ? "" : "s"
+          } saves your ${commitment.currentStreakWeeks}-week streak — check in before the week ends`}
+        />
+      )}
+
       {commitment.description && (
         <Typography variant="body1" sx={{ mb: 2 }}>
           {commitment.description}

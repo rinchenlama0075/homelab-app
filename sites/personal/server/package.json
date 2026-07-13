@@ -5,7 +5,8 @@
   "description": "Minimal social feature API (auth, posts, likes, comments) for the personal portfolio site.",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "node --test lib/*.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

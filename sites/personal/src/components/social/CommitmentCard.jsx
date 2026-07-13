@@ -1,10 +1,23 @@
 import { Link as RouterLink } from "react-router-dom";
 import { Box, Card, CardContent, Chip, LinearProgress, Stack, Typography } from "@mui/material";
 import { amber } from "../../theme";
+import StreakFlame from "./StreakFlame";
+import AtRiskBanner from "./AtRiskBanner";
 
 export default function CommitmentCard({ commitment }) {
-  const { id, title, description, targetPerWeek, owner, checkInsThisWeek, totalCheckIns } =
-    commitment;
+  const {
+    id,
+    title,
+    description,
+    targetPerWeek,
+    owner,
+    checkInsThisWeek,
+    totalCheckIns,
+    currentStreakWeeks,
+    longestStreakWeeks,
+    isAtRisk,
+    checkInsNeededThisWeek,
+  } = commitment;
   const progress = Math.min(100, Math.round((checkInsThisWeek / targetPerWeek) * 100));
   const metTarget = checkInsThisWeek >= targetPerWeek;
 
@@ -22,14 +35,26 @@ export default function CommitmentCard({ commitment }) {
               @{owner.username} · {targetPerWeek}x / week
             </Typography>
           </Box>
-          {metTarget && (
-            <Chip
-              label="On track"
-              size="small"
-              sx={{ bgcolor: amber, color: "#fffaf3", fontWeight: 700 }}
-            />
-          )}
+          <Stack direction="row" spacing={1} alignItems="center">
+            <StreakFlame weeks={currentStreakWeeks} longest={longestStreakWeeks} />
+            {metTarget && (
+              <Chip
+                label="On track"
+                size="small"
+                sx={{ bgcolor: amber, color: "#fffaf3", fontWeight: 700 }}
+              />
+            )}
+          </Stack>
         </Stack>
+
+        {isAtRisk && (
+          <AtRiskBanner
+            dense
+            message={`${checkInsNeededThisWeek} more check-in${
+              checkInsNeededThisWeek === 1 ? "" : "s"
+            } saves your ${currentStreakWeeks}-week streak this week`}
+          />
+        )}
 
         {description && (
           <Typography variant="body2" sx={{ mt: 1, mb: 1.5 }}>

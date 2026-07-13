@@ -1,7 +1,9 @@
+import { useEffect, useState } from "react";
 import { Link as RouterLink, useLocation } from "react-router-dom";
 import { Box, Button, Stack, Typography } from "@mui/material";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { useAuth } from "../../context/AuthContext";
+import { getProfile } from "../../api/socialApi";
 import { amber } from "../../theme";
 
 const TABS = [
@@ -29,6 +31,21 @@ function Tab({ label, to, active }) {
 export default function AppHeader() {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    if (!user) {
+      setStats(null);
+      return;
+    }
+    getProfile(user.username)
+      .then((profile) => setStats(profile.stats))
+      .catch(() => setStats(null));
+  }, [user]);
+
+  const tabs = user
+    ? [...TABS, { label: "Profile", to: `/social/profile/${user.username}` }]
+    : TABS;
 
   return (
     <Stack
@@ -42,7 +59,7 @@ export default function AppHeader() {
           The App
         </Typography>
         <Stack direction="row" spacing={2.5} sx={{ mt: 0.5, mb: 0.5 }}>
-          {TABS.map((tab) => (
+          {tabs.map((tab) => (
             <Tab
               key={tab.to}
               {...tab}
@@ -57,6 +74,13 @@ export default function AppHeader() {
         {user && (
           <Typography variant="body2" color="text.secondary">
             Signed in as <strong>{user.username}</strong>
+            {stats && (
+              <>
+                {" "}
+                · 🔥 {stats.activeStreakCount} active streak{stats.activeStreakCount === 1 ? "" : "s"} · ⭐{" "}
+                {stats.totalPoints} pts
+              </>
+            )}
           </Typography>
         )}
       </Box>

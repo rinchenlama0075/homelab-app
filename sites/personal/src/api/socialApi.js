@@ -54,7 +54,10 @@ export function createPost(commitmentId, imageFile, caption) {
   formData.append("commitmentId", commitmentId);
   formData.append("image", imageFile);
   formData.append("caption", caption || "");
-  return request("/posts", { method: "POST", body: formData }).then((data) => data.post);
+  return request("/posts", { method: "POST", body: formData }).then((data) => ({
+    post: data.post,
+    badgesEarned: data.badgesEarned || [],
+  }));
 }
 
 export function getCommitments({ mine } = {}) {
@@ -86,4 +89,8 @@ export function addComment(postId, body) {
     method: "POST",
     body: JSON.stringify({ body }),
   }).then((data) => data.comment);
+}
+
+export function getProfile(username) {
+  return request(`/users/${username}`);
 }
