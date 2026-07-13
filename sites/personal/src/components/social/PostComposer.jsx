@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   CardContent,
+  Snackbar,
   Stack,
   TextField,
   Typography,
@@ -12,6 +13,7 @@ import {
 import ImageIcon from "@mui/icons-material/Image";
 import CloseIcon from "@mui/icons-material/Close";
 import { createPost } from "../../api/socialApi";
+import { amber } from "../../theme";
 
 const MAX_CAPTION_LENGTH = 280;
 
@@ -22,6 +24,7 @@ export default function PostComposer({ commitmentId, onPostCreated }) {
   const [caption, setCaption] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [unlockedBadge, setUnlockedBadge] = useState(null);
 
   function handleFileChange(event) {
     const selected = event.target.files?.[0] || null;
@@ -49,10 +52,13 @@ export default function PostComposer({ commitmentId, onPostCreated }) {
     setSubmitting(true);
     setError(null);
     try {
-      const post = await createPost(commitmentId, file, caption);
+      const { post, badgesEarned } = await createPost(commitmentId, file, caption);
       onPostCreated?.(post);
       setCaption("");
       clearFile();
+      if (badgesEarned?.length) {
+        setUnlockedBadge(badgesEarned[0]);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -62,6 +68,20 @@ export default function PostComposer({ commitmentId, onPostCreated }) {
 
   return (
     <Card component="form" onSubmit={handleSubmit} sx={{ mb: 4 }}>
+      <Snackbar
+        open={Boolean(unlockedBadge)}
+        autoHideDuration={4000}
+        onClose={() => setUnlockedBadge(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setUnlockedBadge(null)}
+          icon={false}
+          sx={{ bgcolor: amber, color: "#fffaf3", fontWeight: 700 }}
+        >
+          {unlockedBadge && `${unlockedBadge.emoji} Badge unlocked: ${unlockedBadge.name}!`}
+        </Alert>
+      </Snackbar>
       <CardContent>
         <Typography variant="overline" color="secondary" sx={{ fontWeight: 700 }}>
           Check in

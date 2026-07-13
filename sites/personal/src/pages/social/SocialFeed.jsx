@@ -14,6 +14,7 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import AppHeader from "../../components/social/AppHeader";
 import { getCommitments, getFeed } from "../../api/socialApi";
 import PostCard from "../../components/social/PostCard";
+import AtRiskBanner from "../../components/social/AtRiskBanner";
 
 export default function SocialFeed() {
   const [posts, setPosts] = useState(null);
@@ -33,6 +34,8 @@ export default function SocialFeed() {
   useEffect(() => {
     loadFeed();
   }, [loadFeed]);
+
+  const atRiskCommitments = myCommitments?.filter((commitment) => commitment.isAtRisk) || [];
 
   return (
     <Container maxWidth="sm" sx={{ py: { xs: 6, md: 10 } }}>
@@ -67,6 +70,21 @@ export default function SocialFeed() {
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {atRiskCommitments.length > 0 && (
+        <AtRiskBanner
+          to="/social/commitments"
+          message={
+            atRiskCommitments.length === 1
+              ? `${atRiskCommitments[0].checkInsNeededThisWeek} more check-in${
+                  atRiskCommitments[0].checkInsNeededThisWeek === 1 ? "" : "s"
+                } saves your ${atRiskCommitments[0].currentStreakWeeks}-week streak on "${
+                  atRiskCommitments[0].title
+                }" — check in before the week ends`
+              : `${atRiskCommitments.length} commitments need a check-in before their streaks reset this week`
+          }
+        />
       )}
 
       {myCommitments?.length > 0 && (
