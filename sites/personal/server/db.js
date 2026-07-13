@@ -51,12 +51,37 @@ db.exec(`
     body TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS user_badges (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    commitment_id INTEGER REFERENCES commitments(id) ON DELETE CASCADE,
+    badge_code TEXT NOT NULL,
+    earned_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(user_id, commitment_id, badge_code)
+  );
+
+  CREATE TABLE IF NOT EXISTS points_ledger (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    points INTEGER NOT NULL,
+    reason TEXT NOT NULL,
+    post_id INTEGER REFERENCES posts(id) ON DELETE SET NULL,
+    badge_code TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
 // SQLite has no "ADD COLUMN IF NOT EXISTS", so guard the migration manually.
 const postsColumns = db.prepare("PRAGMA table_info(posts)").all();
 if (!postsColumns.some((column) => column.name === "commitment_id")) {
   db.exec("ALTER TABLE posts ADD COLUMN commitment_id INTEGER REFERENCES commitments(id)");
+}
+if (!postsColumns.some((column) => column.name === "type")) {
+  db.exec("ALTER TABLE posts ADD COLUMN type TEXT NOT NULL DEFAULT 'check_in'");
+}
+if (!postsColumns.some((column) => column.name === "milestone_meta")) {
+  db.exec("ALTER TABLE posts ADD COLUMN milestone_meta TEXT");
 }
 
 module.exports = { db, DATA_DIR, UPLOADS_DIR };
