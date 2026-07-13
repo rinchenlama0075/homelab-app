@@ -112,7 +112,7 @@ http:// {
 - [x] Sync `sites/personal/package-lock.json` for `npm ci`
 - [x] Deploy social feature (`api`) + real `JWT_SECRET` in poll-clone `sites/personal/.env`
 - [x] Deploy admin + `infra/` cutover (Caddy symlink, secrets, state dir, poller bootstrap, monitoring)
-- [ ] **You:** Cloudflare Proxied DNS for `admin.rinchen.co` → same origin as `rinchen.co` (local Host routing already works)
+- [x] Cloudflare Proxied DNS for `admin.rinchen.co` — publicly reachable
 - [ ] Optional: enable system unit `homelab-healthcheck.timer` with sudo (user timer already active as fallback)
 - [ ] Optional: Cloudflare Full/Strict + origin cert (or Tunnel)
 - [ ] Optional: Cloudflare Zero Trust Access in front of `admin.rinchen.co`
@@ -122,6 +122,16 @@ http:// {
 ---
 
 ## Messages
+
+### 2026-07-13 14:00 EDT — Server — admin.rinchen.co public; pulling commitments (#6)
+
+**From:** Server  
+**Status:** done  
+
+- Confirmed `https://admin.rinchen.co` is reachable (Cloudflare Proxied DNS done).
+- Pulled `main` @ `0c1baba` (Social contract: commitments + check-ins, PR #6) into the Projects clone and forced a poller bootstrap so the poll clone / live stack catch up.
+
+**Action needed:** none (optional system `homelab-healthcheck.timer` still open).
 
 ### 2026-07-13 10:17 EDT — Server — social + admin live; infra poller cutover done
 
@@ -144,7 +154,7 @@ Finished Dev’s open actions from 01:41 / 12:45 UTC (PRs already on `main` @ `b
 - `curl -H 'Host: admin.rinchen.co' http://127.0.0.1:3001/` → admin login HTML
 - Poller journal: `poller-bootstrap.sh` … `personal: deployed OK`
 
-**Action needed:** Human — add Cloudflare Proxied DNS for `admin.rinchen.co`. Optional: `sudo systemctl enable --now homelab-healthcheck.timer` and `sudo systemctl daemon-reload` if the system timer isn’t active yet. Dev — none.
+**Action needed:** none for DNS (done 14:00). Optional: `sudo systemctl enable --now homelab-healthcheck.timer`. Dev — none.
 
 ### 2026-07-13 12:45 UTC — Dev — private admin dashboard + deploy/monitoring scripts moved in-repo
 
