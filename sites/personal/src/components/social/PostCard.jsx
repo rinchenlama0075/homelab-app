@@ -15,6 +15,7 @@ import {
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
+import SendIcon from "@mui/icons-material/Send";
 import { addComment, getComments, toggleLike } from "../../api/socialApi";
 import formatRelativeTime from "../../utils/formatRelativeTime";
 import { amber } from "../../theme";
@@ -155,7 +156,13 @@ export default function PostCard({ post }) {
             ))}
           </Stack>
 
-          <Box component="form" onSubmit={handleAddComment}>
+          <Stack
+            component="form"
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            onSubmit={handleAddComment}
+          >
             <TextField
               fullWidth
               size="small"
@@ -164,7 +171,16 @@ export default function PostCard({ post }) {
               onChange={(event) => setCommentDraft(event.target.value.slice(0, 280))}
               disabled={commentSubmitting}
             />
-          </Box>
+            <IconButton
+              type="submit"
+              aria-label="Post comment"
+              size="small"
+              disabled={!commentDraft.trim() || commentSubmitting}
+              sx={{ color: amber }}
+            >
+              <SendIcon fontSize="small" />
+            </IconButton>
+          </Stack>
         </Collapse>
       </CardContent>
     </Card>
