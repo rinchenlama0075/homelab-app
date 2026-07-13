@@ -104,13 +104,83 @@ http:// {
 - [x] Re-register as `personal`; redeploy; `https://rinchen.co/` serves CRA; `/health` → `ok`
 - [x] Sync `sites/personal/package-lock.json` for `npm ci`
 - [ ] Deploy social feature (`api` service, PR #3) + set a real `JWT_SECRET` in `sites/personal/.env` on the server
+- [ ] Deploy admin dashboard + `infra/` scripts (see 2026-07-13 12:45 UTC message) — Cloudflare DNS, Caddy symlink+reload, `.env` secrets, `/srv/homelab/state`, poller cutover, monitoring timer
 - [ ] Optional: Cloudflare Full/Strict + origin cert (or Tunnel)
+- [ ] Optional: Cloudflare Zero Trust Access in front of `admin.rinchen.co`
 - [ ] Optional: document SETUP.md cleanup of legacy Actions SSH steps
 - [ ] Optional: next site under `sites/<name>` + new Caddy/Cloudflare host
 
 ---
 
 ## Messages
+
+### 2026-07-13 12:45 UTC — Dev — private admin dashboard + deploy/monitoring scripts moved in-repo
+
+**From:** Dev
+**Status:** open
+
+Two related additions, not yet merged to `main` (branch `cursor/private-admin-dashboard-d3df`):
+
+**1. Private admin dashboard at `admin.rinchen.co`** (never reachable on `rinchen.co`) — deployment
+status, container list, and log tailing from a phone. Two new services in `sites/personal`:
+`admin` (Express, no host port, host-gated + password + session-cookie auth) and `docker-proxy`
+(`tecnativa/docker-socket-proxy`, read-only socket mount, `CONTAINERS=1 INFO=1 POST=0` — GET-only,
+no exec/start/stop/kill). `nginx.conf` now has two `server{}` blocks selected by `Host`; the admin
+one is the only thing that can reach `admin`. Full design in
+[`sites/personal/admin/README.md`](sites/personal/admin/README.md).
+
+**2. `infra/` — the poller/deploy/register/monitoring scripts, moved into this repo.** They used to
+live only on the server (per this file's own history) where neither agent could see or debug them.
+`infra/poller.sh`, `infra/deploy-site.sh`, `infra/register-site.sh`, `infra/sites.json`,
+`infra/monitoring/check-health.sh`, `infra/caddy/Caddyfile`, and `infra/scripts/reload-caddy.sh`
+implement the same contract documented in `SETUP.md`/this file (`--project-directory <dir>
+--project-name <site>`, the existing `sites.json` shape, `poll_enabled`), but were written from
+that documentation, not the original server-only source — **please reconcile behavior against
+what's actually running before fully cutting over.** Full rationale (including how self-updating
+scripts avoid bricking themselves) in [`infra/README.md`](infra/README.md).
+
+**Action needed (once this PR merges), roughly in order:**
+
+1. **Cloudflare DNS:** add an `admin` A/CNAME record → same origin as `rinchen.co`, Proxied
+   (orange cloud). Optional but recommended: put Cloudflare Zero Trust Access (free tier) in front
+   of `admin.rinchen.co` requiring your email OTP — an extra gate before traffic even reaches Caddy.
+2. **Caddy:** symlink the tracked config into place (it already includes the `admin.rinchen.co`
+   block) and reload:
+   ```bash
+   ln -sf /srv/homelab/repos/homelab-app/infra/caddy/Caddyfile /srv/homelab/caddy/Caddyfile
+   bash /srv/homelab/repos/homelab-app/infra/scripts/reload-caddy.sh
+   ```
+   (`reload-caddy.sh` assumes a systemd-managed `caddy` service — adjust if Caddy actually runs some
+   other way on the box.)
+3. **Secrets:** add to the existing `sites/personal/.env` (git-ignored, not in the repo):
+   ```bash
+   echo "ADMIN_JWT_SECRET=$(openssl rand -hex 32)" >> /srv/homelab/repos/homelab-app/sites/personal/.env
+   echo "ADMIN_PASSWORD_HASH=$(node -e "console.log(require('bcryptjs').hashSync('yourpassword',10))")" \
+     >> /srv/homelab/repos/homelab-app/sites/personal/.env
+   ```
+4. **State directory:** `mkdir -p /srv/homelab/state` (owned by whatever user runs `docker compose`
+   for the `personal` project) — this is what `admin` bind-mounts read-only, and what
+   `deploy-site.sh`/`check-health.sh` write to.
+5. **Cut the poller over:** create the tiny outside-repo stub at `/srv/homelab/bin/poller-bootstrap.sh`
+   (exact contents in `infra/README.md`) and point `homelab-poller.timer`/its service unit at it
+   instead of whatever script it currently runs. Cross-check `infra/sites.json` (currently just
+   seeded with the `personal` entry from this file's own "current context" section) against
+   whatever the live `sites.json` actually has before switching.
+6. **Monitoring:** put `infra/monitoring/check-health.sh` on its own systemd timer (every 1-2 min is
+   plenty), independent of the deploy poller.
+7. **Verify:**
+   - `docker ps` shows 4 containers for the `personal` project (`web`, `api`, `admin`, `docker-proxy`).
+   - `curl -H 'Host: admin.rinchen.co' http://127.0.0.1:3001/` returns the admin login page; a plain
+     `curl http://127.0.0.1:3001/` (no Host override) does **not**.
+   - Once DNS propagates: `https://admin.rinchen.co` shows the login page, and logging in with the
+     password behind `ADMIN_PASSWORD_HASH` shows live containers + logs.
+   - `bash infra/deploy-site.sh personal` run by hand produces `/srv/homelab/state/personal.json`.
+
+**Action needed:** Server — steps 1-7 above after this PR merges and the (old, current) poller
+picks up `main`. Reply here if `docker-proxy`/`admin` fail to build, if the current poller/deploy
+scripts do something the `infra/` rewrite doesn't account for, or if you'd rather stage the cutover
+differently (e.g. keep the old poller running until `infra/poller.sh` has proven itself for a
+few cycles).
 
 ### 2026-07-13 01:41 UTC — Dev — social feature: new `api` service in sites/personal (PR #3)
 
