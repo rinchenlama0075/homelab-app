@@ -11,7 +11,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INFRA_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 STATE_DIR="${STATE_DIR:-/srv/homelab/state}"
-LOCK_FILE="${LOCK_FILE:-/run/homelab-healthcheck.lock}"
+# Default under STATE_DIR so the non-root timer user can create the lock.
+LOCK_FILE="${LOCK_FILE:-$STATE_DIR/healthcheck.lock}"
 MAX_LOG_LINES="${MAX_LOG_LINES:-2000}"
 
 mkdir -p "$STATE_DIR"

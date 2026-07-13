@@ -6,7 +6,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STATE_DIR="${STATE_DIR:-/srv/homelab/state}"
-LOCK_FILE="${LOCK_FILE:-/run/homelab-poller.lock}"
+# Default under STATE_DIR so the non-root poller user can create the lock
+# ( /run is root-only on this host ).
+LOCK_FILE="${LOCK_FILE:-$STATE_DIR/poller.lock}"
 
 mkdir -p "$STATE_DIR"
 

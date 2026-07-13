@@ -38,14 +38,15 @@ Body…
 
 ---
 
-## Current context (as of 2026-07-12 17:59 EDT)
+## Current context (as of 2026-07-13 10:17 EDT)
 
-- Deploy model: **poll-based** (`homelab-poller.timer`, ~2 min).
+- Deploy model: **poll-based via in-repo `infra/`** — systemd runs `/srv/homelab/bin/poller-bootstrap.sh` → `infra/poller.sh` (~2 min).
 - **Monorepo** live: `sites/<name>/` with own compose + Dockerfile.
-- Site registry entry: **`personal`** → `compose_dir: sites/personal`, port **3001**, domain **`rinchen.co`**, shared `repo_dir: /srv/homelab/repos/homelab-app`.
-- Container: `personal-web-1` (CRA build → nginx). Legacy `homelab-app` Express container removed.
-- Poller status: **success / unchanged** at SHA `0b1271a` (lockfile fix).
-- Public: Cloudflare Proxied + SSL **Flexible**; Caddy `auto_https off`; `http://rinchen.co` → `localhost:3001`.
+- Site registry: in-repo flat [`infra/sites.json`](infra/sites.json); legacy nested copy still at `/srv/homelab/deploy/sites.json` (kept for rollback).
+- Site **`personal`** → `compose_dir: sites/personal`, port **3001**, domain **`rinchen.co`** (+ **`admin.rinchen.co`** Host-routed in nginx).
+- Containers: `personal-web-1`, `personal-api-1`, `personal-admin-1`, `personal-docker-proxy-1`.
+- State: `/srv/homelab/state` (deploy status + `health.jsonl`); Caddyfile is a symlink to `infra/caddy/Caddyfile`.
+- Public: Cloudflare Proxied + SSL **Flexible**; Caddy `auto_https off`; both hosts → `localhost:3001`.
 - LAN `192.168.1.156` · Public `96.242.123.13` · Verizon port forwards 80/443.
 
 ### sites.json (server)
@@ -75,10 +76,12 @@ Body…
 6. **`npm ci` in Docker** requires a lockfile in sync with `package.json` (missing `yaml@2.9.0` broke first personal build).
 7. **sudo `$HOME`:** resolve via `SUDO_USER`, not `/root`.
 8. **Don’t restart `systemd-logind`** on this desktop laptop during setup.
+9. **bcrypt in Compose `.env`:** hashes contain `$` — Docker Compose interpolates them unless escaped as `$$`.
+10. **Poller locks:** default flock path must be writable by user `rinchen` (use `/srv/homelab/state/*.lock`, not `/run/...`).
 
 ### Caddy origin config (current)
 
-`/srv/homelab/caddy/Caddyfile` → `sudo bash ~/homelab-setup/scripts/reload-caddy.sh`
+`/srv/homelab/caddy/Caddyfile` → symlink to repo `infra/caddy/Caddyfile` → reload via `infra/scripts/reload-caddy.sh` (or `~/homelab-setup/scripts/reload-caddy.sh`)
 
 ```caddy
 {
@@ -88,6 +91,10 @@ Body…
 http://rinchen.co {
 	reverse_proxy localhost:3001
 	encode gzip
+}
+
+http://admin.rinchen.co {
+	reverse_proxy localhost:3001
 }
 
 http:// {
@@ -103,8 +110,10 @@ http:// {
 - [x] Monorepo `deploy-site.sh` / `register-site.sh` support `sites/<name>` + `compose_dir`
 - [x] Re-register as `personal`; redeploy; `https://rinchen.co/` serves CRA; `/health` → `ok`
 - [x] Sync `sites/personal/package-lock.json` for `npm ci`
-- [ ] Deploy social feature (`api` service, PR #3) + set a real `JWT_SECRET` in `sites/personal/.env` on the server
-- [ ] Deploy admin dashboard + `infra/` scripts (see 2026-07-13 12:45 UTC message) — Cloudflare DNS, Caddy symlink+reload, `.env` secrets, `/srv/homelab/state`, poller cutover, monitoring timer
+- [x] Deploy social feature (`api`) + real `JWT_SECRET` in poll-clone `sites/personal/.env`
+- [x] Deploy admin + `infra/` cutover (Caddy symlink, secrets, state dir, poller bootstrap, monitoring)
+- [ ] **You:** Cloudflare Proxied DNS for `admin.rinchen.co` → same origin as `rinchen.co` (local Host routing already works)
+- [ ] Optional: enable system unit `homelab-healthcheck.timer` with sudo (user timer already active as fallback)
 - [ ] Optional: Cloudflare Full/Strict + origin cert (or Tunnel)
 - [ ] Optional: Cloudflare Zero Trust Access in front of `admin.rinchen.co`
 - [ ] Optional: document SETUP.md cleanup of legacy Actions SSH steps
@@ -114,10 +123,33 @@ http:// {
 
 ## Messages
 
+### 2026-07-13 10:17 EDT — Server — social + admin live; infra poller cutover done
+
+**From:** Server  
+**Status:** done  
+
+Finished Dev’s open actions from 01:41 / 12:45 UTC (PRs already on `main` @ `b81d216`).
+
+**Server changes:**
+1. Wrote poll-clone `sites/personal/.env` (`JWT_SECRET`, `ADMIN_JWT_SECRET`, `ADMIN_PASSWORD_HASH` with `$$` escaping for Compose). Admin password once-file: `~/.homelab-admin-password-once.txt` (mode 600) — read then delete.
+2. Forced redeploy of `personal` (old poller is SHA-gated and would not re-compose). Verified `/health`, `/api/health`, Host-gated admin UI.
+3. Symlinked `/srv/homelab/caddy/Caddyfile` → `infra/caddy/Caddyfile` (backup kept beside it); local `Host: admin.rinchen.co` on `:80` serves admin login.
+4. `/srv/homelab/state` owned by `rinchen`; `infra/deploy-site.sh personal` writes `personal.json` successfully.
+5. Installed `/srv/homelab/bin/poller-bootstrap.sh`; retargeted `homelab-poller.service` → bootstrap. Journal shows successful bootstrap cycles.
+6. Monitoring: `health.jsonl` updating. System `homelab-healthcheck.timer` unit is on disk but **disabled** (needs `sudo systemctl enable --now homelab-healthcheck.timer`); **user** timer `homelab-healthcheck.timer` enabled as interim.
+7. Reconcile notes: live registry is nested `{"sites":…}` vs flat `infra/sites.json` (OK for docker-only personal); new poller rebuilds every tick; locks defaulted under `STATE_DIR` (see learning #10). Old `/srv/homelab/deploy/*` left for rollback.
+
+**Verified:**
+- Four containers Up; `curl` local `/health` + `/api/health` → `ok`; public `https://rinchen.co/api/health` → `ok`
+- `curl -H 'Host: admin.rinchen.co' http://127.0.0.1:3001/` → admin login HTML
+- Poller journal: `poller-bootstrap.sh` … `personal: deployed OK`
+
+**Action needed:** Human — add Cloudflare Proxied DNS for `admin.rinchen.co`. Optional: `sudo systemctl enable --now homelab-healthcheck.timer` and `sudo systemctl daemon-reload` if the system timer isn’t active yet. Dev — none.
+
 ### 2026-07-13 12:45 UTC — Dev — private admin dashboard + deploy/monitoring scripts moved in-repo
 
 **From:** Dev
-**Status:** open
+**Status:** done *(answered by Server 10:17 EDT)*
 
 Two related additions, not yet merged to `main` (branch `cursor/private-admin-dashboard-d3df`):
 
@@ -185,7 +217,7 @@ few cycles).
 ### 2026-07-13 01:41 UTC — Dev — social feature: new `api` service in sites/personal (PR #3)
 
 **From:** Dev
-**Status:** open
+**Status:** done *(answered by Server 10:17 EDT)*
 
 Added a minimal social feature (accounts, photo+caption posts, likes, comments) to the personal
 portfolio at `/social`. It's designed to stay entirely on `rinchen.co` — **no new domain, Caddy
