@@ -8,14 +8,62 @@ services:
       - api_data:/app/data
     expose:
       - "4000"
+    networks:
+      - default
+
+  # Locked down, read-only view of the Docker API — GET-only, and only the
+  # /containers and /info sections. No exec/create/start/stop/kill/build/etc.
+  # Reachable only by `admin` on the private `admin-net` network, never by
+  # `api` or `web`. See ../../infra/README.md for the full threat model.
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    restart: unless-stopped
+    environment:
+      - CONTAINERS=1
+      - INFO=1
+      - POST=0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - admin-net
+
+  # Private admin API — never bound to a host port, only reachable via nginx's
+  # admin.rinchen.co server block. See sites/personal/admin/README.md.
+  admin:
+    build: ./admin
+    restart: unless-stopped
+    environment:
+      - ADMIN_HOST=${ADMIN_HOST:-admin.rinchen.co}
+      - ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH:-}
+      - ADMIN_JWT_SECRET=${ADMIN_JWT_SECRET:-dev-admin-secret-change-me}
+      - DOCKER_PROXY_URL=http://docker-proxy:2375
+      - COMPOSE_PROJECT=${COMPOSE_PROJECT_NAME:-personal}
+    volumes:
+      - ${STATE_DIR:-/srv/homelab/state}:/app/state:ro
+    expose:
+      - "4001"
+    depends_on:
+      - docker-proxy
+    networks:
+      - default
+      - admin-net
 
   web:
     build: .
     restart: unless-stopped
     depends_on:
       - api
+      - admin
     ports:
       - "127.0.0.1:3001:80"
+    networks:
+      - default
 
 volumes:
   api_data:
+
+networks:
+  default:
+  # Isolated network so the social-feature `api` service can never reach
+  # docker-proxy, even though both live in the same compose project.
+  admin-net:
