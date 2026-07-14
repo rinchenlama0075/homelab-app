@@ -33,15 +33,18 @@ docker compose up --build
 
 ## Content status
 
-The current pages are a placeholder rebuild of the live site's content (hero, "what we do",
-"about us", "our mission", plus "coming soon" placeholders for Blogs and Donate, matching what's
-live today). The site owner is expected to:
+The pages are a rebuild of the live site's content and real assets (hero, "what we do", "about
+us", "our mission", a "Moments from our community" photo gallery, a Team page, plus "coming soon"
+placeholders for Blogs and Donate, matching what's live today). Real photos, program icons, team
+headshots, and a favicon were scraped from the live Webflow-hosted site and are checked into
+`public/assets/` (see `public/assets/README.md`) — resized/compressed for the web. The site owner
+is expected to:
 
-1. Drop real photos/logo/PDFs into `public/assets/` (currently just a placeholder favicon —
-   there are no real brand assets in the repo yet).
+1. Drop a real **logo** into `public/assets/` (the brand mark is currently a CSS placeholder) and
+   any newer photos/PDFs as they become available.
 2. Update copy in the HTML files directly (no CMS/database — edit and redeploy).
-3. Replace the SVG icon placeholders in the "What we do" / "Programs" cards with real
-   photography once available, if desired.
+3. Flesh out the Blogs/Donate/Team content further as needed — team members currently only have
+   names + photos, matching what the live site provided.
 
 ## Deployment
 
