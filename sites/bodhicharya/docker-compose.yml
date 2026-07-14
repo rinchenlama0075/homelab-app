@@ -1,0 +1,8 @@
+services:
+  # Single static web service. No API, no admin, no database, no network
+  # shared with any other site in this repo — fully independent.
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3002:80"

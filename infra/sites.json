@@ -7,5 +7,14 @@
     "compose_dir": "sites/personal",
     "branch": "main",
     "poll_enabled": true
+  },
+  "bodhicharya": {
+    "type": "docker",
+    "git_url": "git@github.com:rinchenlama0075/homelab-app.git",
+    "domain": "bodhicharyafoundation.org",
+    "port": 3002,
+    "compose_dir": "sites/bodhicharya",
+    "branch": "main",
+    "poll_enabled": true
   }
 }

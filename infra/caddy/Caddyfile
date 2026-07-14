@@ -19,6 +19,15 @@ http://admin.rinchen.co {
 	reverse_proxy localhost:3001
 }
 
+# Bodhicharya Foundation — independent site (sites/bodhicharya), no
+# connection to rinchen.co: separate container, separate port, separate
+# domain. Both apex and www are covered here so DNS can point either at
+# this origin.
+http://bodhicharyafoundation.org, http://www.bodhicharyafoundation.org {
+	reverse_proxy localhost:3002
+	encode gzip
+}
+
 http:// {
-	respond "Homelab server is running. Sites: rinchen.co" 200
+	respond "Homelab server is running." 200
 }
