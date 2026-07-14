@@ -5,6 +5,7 @@ One git repo, many independent Docker Compose projects. Each site lives under `s
 | Site | Folder | Port (host) | Domain |
 |------|--------|-------------|--------|
 | Personal portfolio (React + MUI) + social contract app | [`sites/personal`](sites/personal) | 3001 | `rinchen.co` |
+| Bodhicharya Foundation (static site) | [`sites/bodhicharya`](sites/bodhicharya) | 3002 | `bodhicharyafoundation.org` |
 
 `sites/personal` is four Docker services sharing one compose project: `web` (the CRA build, served
 by nginx, the only one bound to a host port), `api` (Node/Express + SQLite powering the `/social`
@@ -21,6 +22,14 @@ tailing container logs from anywhere, including a phone. It's a **separate nginx
 (matched by `Host`) from the public site — there is no path on `rinchen.co` that reaches it. See
 [`sites/personal/admin/README.md`](sites/personal/admin/README.md) for the API/env vars and
 [`infra/README.md`](infra/README.md) for how deploy/health status gets there.
+
+### Bodhicharya Foundation (static site, no connection to `rinchen.co`)
+
+[`sites/bodhicharya`](sites/bodhicharya) is a plain static HTML/CSS/JS rebuild of
+`bodhicharyafoundation.org` (migrated off WordPress), served by nginx with no build step and no
+database. It's a fully independent Docker Compose project — its own container, its own port
+(`3002`), its own domain — sharing nothing with `sites/personal`/`rinchen.co` beyond this repo and
+the underlying server. See [`sites/bodhicharya/README.md`](sites/bodhicharya/README.md).
 
 ## Layout
 
