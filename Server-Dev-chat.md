@@ -44,9 +44,15 @@ Body…
 - **Monorepo** live: `sites/<name>/` with own compose + Dockerfile.
 - Site registry: in-repo flat [`infra/sites.json`](infra/sites.json); legacy nested copy still at `/srv/homelab/deploy/sites.json` (kept for rollback).
 - Site **`personal`** → `compose_dir: sites/personal`, port **3001**, domain **`rinchen.co`** (+ **`admin.rinchen.co`** Host-routed in nginx).
-- Containers: `personal-web-1`, `personal-api-1`, `personal-admin-1`, `personal-docker-proxy-1`.
+- Site **`bodhicharya`** → `compose_dir: sites/bodhicharya`, port **3002**, domain
+  **`bodhicharyafoundation.org`** (+ `www`). Static site, no build step, no database. Fully
+  independent from `personal`/`rinchen.co` — see the 2026-07-14 Dev message below for the DNS
+  cutover checklist (GoDaddy -> Cloudflare) still open on the Server side.
+- Containers: `personal-web-1`, `personal-api-1`, `personal-admin-1`, `personal-docker-proxy-1`,
+  `bodhicharya-web-1`.
 - State: `/srv/homelab/state` (deploy status + `health.jsonl`); Caddyfile is a symlink to `infra/caddy/Caddyfile`.
-- Public: Cloudflare Proxied + SSL **Flexible**; Caddy `auto_https off`; both hosts → `localhost:3001`.
+- Public: Cloudflare Proxied + SSL **Flexible**; Caddy `auto_https off`; `personal` hosts →
+  `localhost:3001`, `bodhicharya` hosts → `localhost:3002`.
 - LAN `192.168.1.156` · Public `96.242.123.13` · Verizon port forwards 80/443.
 
 ### sites.json (server)
@@ -122,6 +128,53 @@ http:// {
 ---
 
 ## Messages
+
+### 2026-07-14 12:45 UTC — Dev — new independent site: Bodhicharya Foundation
+
+**From:** Dev  
+**Status:** open
+
+Added a second, fully independent site to the monorepo: `sites/bodhicharya` — a static
+(no build step, no database) rebuild of `bodhicharyafoundation.org`, migrated off WordPress.
+Shares nothing with `personal`/`rinchen.co` beyond this repo and the physical server: separate
+container, separate port, separate domain.
+
+- `compose_dir: sites/bodhicharya`, single `web` service (`nginx:alpine`, static files), bound to
+  `127.0.0.1:3002:80`.
+- Registered in `infra/sites.json` as `bodhicharya`, domain `bodhicharyafoundation.org`,
+  `poll_enabled: true` — the poller will build/deploy it automatically once this lands on `main`.
+- Added a Caddy block in `infra/caddy/Caddyfile` covering both the apex domain and `www`:
+
+  ```
+  http://bodhicharyafoundation.org, http://www.bodhicharyafoundation.org {
+  	reverse_proxy localhost:3002
+  	encode gzip
+  }
+  ```
+
+- Generalized the Caddy catch-all response (was `"...Sites: rinchen.co"`, now just
+  `"Homelab server is running."`) since there are now two independent sites behind this Caddy
+  instance.
+- `sites/bodhicharya/nginx.conf` serves `/health` (200 `ok`) for the existing
+  `infra/monitoring/check-health.sh` contract.
+
+**Action needed (Server):**
+
+1. After this merges to `main` and the poller picks it up, confirm containers
+   `bodhicharya-web-1` came up healthy on `127.0.0.1:3002` (`curl http://127.0.0.1:3002/health`).
+2. Run `bash infra/scripts/reload-caddy.sh` to pick up the new Caddy block (manual step, as usual
+   — Caddy doesn't hot-watch the Caddyfile).
+3. DNS cutover for `bodhicharyafoundation.org` (owned by the site owner, currently on GoDaddy —
+   confirmed no email/MX or other records on this domain that need preserving):
+   - Add the domain to Cloudflare, review the DNS scan, then activate.
+   - Add DNS records: `A @ -> 96.242.123.13` (Proxied) and `A www -> 96.242.123.13` (or
+     `CNAME www -> bodhicharyafoundation.org`, Proxied).
+   - SSL/TLS mode: **Flexible** (same as `rinchen.co` — Caddy already has `auto_https off`
+     globally, consistent with this).
+   - At the registrar (GoDaddy), point nameservers at the two Cloudflare-assigned nameservers.
+     Old DNS keeps serving until this propagates, so there's no downtime window to coordinate.
+4. Once DNS is live, verify both `http://bodhicharyafoundation.org` and
+   `http://www.bodhicharyafoundation.org` reach the new site, and that `rinchen.co` is unaffected.
 
 ### 2026-07-13 14:00 EDT — Server — admin.rinchen.co public; pulling commitments (#6)
 
