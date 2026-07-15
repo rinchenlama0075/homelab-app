@@ -25,6 +25,7 @@ db.exec(`
     title TEXT NOT NULL,
     description TEXT,
     target_per_week INTEGER NOT NULL DEFAULT 1,
+    end_date TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -82,6 +83,14 @@ if (!postsColumns.some((column) => column.name === "type")) {
 }
 if (!postsColumns.some((column) => column.name === "milestone_meta")) {
   db.exec("ALTER TABLE posts ADD COLUMN milestone_meta TEXT");
+}
+
+const commitmentsColumns = db.prepare("PRAGMA table_info(commitments)").all();
+if (!commitmentsColumns.some((column) => column.name === "end_date")) {
+  // Nullable: existing commitments stay open-ended. Stored as a plain
+  // "YYYY-MM-DD" date (no time component) — the commitment stays active
+  // through the end of that day.
+  db.exec("ALTER TABLE commitments ADD COLUMN end_date TEXT");
 }
 
 module.exports = { db, DATA_DIR, UPLOADS_DIR };

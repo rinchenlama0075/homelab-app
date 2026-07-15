@@ -4,12 +4,23 @@ import { amber } from "../../theme";
 import StreakFlame from "./StreakFlame";
 import AtRiskBanner from "./AtRiskBanner";
 
+function formatShortDate(dateString) {
+  return new Date(`${dateString}T00:00:00Z`).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 export default function CommitmentCard({ commitment }) {
   const {
     id,
     title,
     description,
     targetPerWeek,
+    endDate,
+    daysRemaining,
+    isEnded,
     owner,
     checkInsThisWeek,
     totalCheckIns,
@@ -33,16 +44,35 @@ export default function CommitmentCard({ commitment }) {
             <Typography variant="h6">{title}</Typography>
             <Typography variant="body2" color="text.secondary">
               @{owner.username} · {targetPerWeek}x / week
+              {endDate && !isEnded && ` · ends ${formatShortDate(endDate)}`}
+              {isEnded && ` · ended ${formatShortDate(endDate)}`}
             </Typography>
           </Box>
           <Stack direction="row" spacing={1} alignItems="center">
             <StreakFlame weeks={currentStreakWeeks} longest={longestStreakWeeks} />
-            {metTarget && (
+            {isEnded ? (
               <Chip
-                label="On track"
+                label="🏁 Completed"
                 size="small"
-                sx={{ bgcolor: amber, color: "#fffaf3", fontWeight: 700 }}
+                sx={{ bgcolor: "success.main", color: "#fff", fontWeight: 700 }}
               />
+            ) : (
+              <>
+                {endDate && (
+                  <Chip
+                    label={daysRemaining === 0 ? "Ends today" : `⏳ ${daysRemaining}d left`}
+                    size="small"
+                    variant="outlined"
+                  />
+                )}
+                {metTarget && (
+                  <Chip
+                    label="On track"
+                    size="small"
+                    sx={{ bgcolor: amber, color: "#fffaf3", fontWeight: 700 }}
+                  />
+                )}
+              </>
             )}
           </Stack>
         </Stack>

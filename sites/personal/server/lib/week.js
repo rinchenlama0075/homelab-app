@@ -24,4 +24,21 @@ function previousWeekStart(weekStartString) {
   return weekStartUtc(new Date(asDate.getTime() - WEEK_MS));
 }
 
-module.exports = { startOfCurrentWeekSql, weekStartUtc, previousWeekStart };
+// Plain "YYYY-MM-DD" for "today" in UTC — used for commitment end dates,
+// which are calendar days rather than precise timestamps.
+function todayUtcDate(now = new Date()) {
+  return now.toISOString().slice(0, 10);
+}
+
+// Whole calendar days between today (UTC) and `endDateString` ("YYYY-MM-DD").
+// Positive means the end date is still upcoming, 0 means it's today, negative
+// means it has already passed. `endDateString` may be null, in which case
+// this returns null (the commitment is open-ended).
+function daysUntil(endDateString, now = new Date()) {
+  if (!endDateString) return null;
+  const today = new Date(`${todayUtcDate(now)}T00:00:00Z`);
+  const end = new Date(`${endDateString}T00:00:00Z`);
+  return Math.round((end.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+}
+
+module.exports = { startOfCurrentWeekSql, weekStartUtc, previousWeekStart, todayUtcDate, daysUntil };

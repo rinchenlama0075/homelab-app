@@ -4,6 +4,7 @@ import {
   Alert,
   Box,
   Button,
+  Chip,
   CircularProgress,
   Container,
   Divider,
@@ -19,6 +20,15 @@ import StreakFlame from "../../components/social/StreakFlame";
 import AtRiskBanner from "../../components/social/AtRiskBanner";
 import { getCommitment, getFeed } from "../../api/socialApi";
 import { useAuth } from "../../context/AuthContext";
+
+function formatShortDate(dateString) {
+  return new Date(`${dateString}T00:00:00Z`).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
 
 export default function CommitmentDetail() {
   const { id } = useParams();
@@ -103,18 +113,54 @@ export default function CommitmentDetail() {
             @{commitment.owner.username} · {commitment.targetPerWeek}x / week
           </Typography>
         </Box>
-        <StreakFlame
-          weeks={commitment.currentStreakWeeks}
-          longest={commitment.longestStreakWeeks}
-          size="medium"
-        />
+        <Stack alignItems="flex-end" spacing={1}>
+          <StreakFlame
+            weeks={commitment.currentStreakWeeks}
+            longest={commitment.longestStreakWeeks}
+            size="medium"
+          />
+          {commitment.isEnded ? (
+            <Chip
+              label="🏁 Completed"
+              size="small"
+              sx={{ bgcolor: "success.main", color: "#fff", fontWeight: 700 }}
+            />
+          ) : (
+            commitment.endDate && (
+              <Chip
+                label={
+                  commitment.daysRemaining === 0
+                    ? "Ends today"
+                    : `⏳ ${commitment.daysRemaining}d left`
+                }
+                size="small"
+                variant="outlined"
+              />
+            )
+          )}
+        </Stack>
       </Stack>
+
+      {commitment.endDate && (
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          {commitment.isEnded ? "Challenge ended" : "Challenge ends"}{" "}
+          {formatShortDate(commitment.endDate)}
+        </Typography>
+      )}
 
       {commitment.longestStreakWeeks > 0 && (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
           Longest streak: {commitment.longestStreakWeeks} week
           {commitment.longestStreakWeeks === 1 ? "" : "s"}
         </Typography>
+      )}
+
+      {commitment.isEnded && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {commitment.longestStreakWeeks > 0
+            ? "This challenge is complete — nice work seeing it through!"
+            : "This challenge has ended."}
+        </Alert>
       )}
 
       {commitment.isAtRisk && (
@@ -151,7 +197,7 @@ export default function CommitmentDetail() {
         </Typography>
       </Box>
 
-      {isOwner && (
+      {isOwner && !commitment.isEnded && (
         <PostComposer commitmentId={commitment.id} onPostCreated={handlePostCreated} />
       )}
 
