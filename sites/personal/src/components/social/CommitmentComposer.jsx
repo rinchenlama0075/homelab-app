@@ -138,8 +138,10 @@ export default function CommitmentComposer({ onCreated }) {
               type="date"
               value={endDate}
               onChange={(event) => setEndDate(event.target.value)}
-              InputLabelProps={{ shrink: true }}
-              inputProps={{ min: tomorrowDateString() }}
+              slotProps={{
+                inputLabel: { shrink: true },
+                htmlInput: { min: tomorrowDateString() },
+              }}
               helperText="You can check in until this date. Reach it with your streak intact and you'll earn the Finisher badge."
               sx={{ maxWidth: 220 }}
             />

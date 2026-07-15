@@ -196,18 +196,22 @@ export default function ProfilePage() {
             <StatBlock label="Check-ins" value={stats.totalCheckIns} />
             <StatBlock label="🔥 Active streaks" value={stats.activeStreakCount} />
             <StatBlock label="🏅 Badges" value={stats.badgeCount} />
-            {stats.completedCount > 0 && (
-              <StatBlock label="🏁 Completed" value={stats.completedCount} />
-            )}
           </Stack>
-          {stats.longestEverStreak > 0 && (
+          {(stats.longestEverStreak > 0 || stats.completedCount > 0) && (
             <Typography
               variant="body2"
               color="text.secondary"
               align="center"
               sx={{ mt: 2 }}
             >
-              Personal best: a {stats.longestEverStreak}-week streak
+              {[
+                stats.longestEverStreak > 0 &&
+                  `Personal best: a ${stats.longestEverStreak}-week streak`,
+                stats.completedCount > 0 &&
+                  `🏁 ${stats.completedCount} challenge${stats.completedCount === 1 ? "" : "s"} completed`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </Typography>
           )}
         </CardContent>
