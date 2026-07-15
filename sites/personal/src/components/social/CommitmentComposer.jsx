@@ -5,8 +5,10 @@ import {
   Button,
   Card,
   CardContent,
+  FormControlLabel,
   MenuItem,
   Stack,
+  Switch,
   TextField,
   Typography,
 } from "@mui/material";
@@ -16,10 +18,18 @@ const MAX_TITLE_LENGTH = 80;
 const MAX_DESCRIPTION_LENGTH = 280;
 const TARGET_OPTIONS = [1, 2, 3, 4, 5, 6, 7];
 
+function tomorrowDateString() {
+  const tomorrow = new Date();
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  return tomorrow.toISOString().slice(0, 10);
+}
+
 export default function CommitmentComposer({ onCreated }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [targetPerWeek, setTargetPerWeek] = useState(3);
+  const [hasEndDate, setHasEndDate] = useState(false);
+  const [endDate, setEndDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -29,15 +39,26 @@ export default function CommitmentComposer({ onCreated }) {
       setError("Give your commitment a title.");
       return;
     }
+    if (hasEndDate && !endDate) {
+      setError("Pick an end date, or turn off the challenge deadline.");
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
     try {
-      const commitment = await createCommitment({ title, description, targetPerWeek });
+      const commitment = await createCommitment({
+        title,
+        description,
+        targetPerWeek,
+        endDate: hasEndDate ? endDate : null,
+      });
       onCreated?.(commitment);
       setTitle("");
       setDescription("");
       setTargetPerWeek(3);
+      setHasEndDate(false);
+      setEndDate("");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -96,6 +117,35 @@ export default function CommitmentComposer({ onCreated }) {
               </MenuItem>
             ))}
           </TextField>
+
+          <FormControlLabel
+            control={
+              <Switch
+                checked={hasEndDate}
+                onChange={(event) => {
+                  setHasEndDate(event.target.checked);
+                  if (event.target.checked && !endDate) {
+                    setEndDate(tomorrowDateString());
+                  }
+                }}
+              />
+            }
+            label="Make it a time-boxed challenge"
+          />
+          {hasEndDate && (
+            <TextField
+              label="Ends on"
+              type="date"
+              value={endDate}
+              onChange={(event) => setEndDate(event.target.value)}
+              slotProps={{
+                inputLabel: { shrink: true },
+                htmlInput: { min: tomorrowDateString() },
+              }}
+              helperText="You can check in until this date. Reach it with your streak intact and you'll earn the Finisher badge."
+              sx={{ maxWidth: 220 }}
+            />
+          )}
 
           <Box>
             <Button type="submit" variant="contained" color="secondary" disabled={submitting}>

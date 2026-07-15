@@ -7,6 +7,7 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   CircularProgress,
   Container,
   Divider,
@@ -60,7 +61,25 @@ function ProfileCommitmentRow({ commitment }) {
             {commitment.totalCheckIns === 1 ? "" : "s"} total
           </Typography>
         </Box>
-        <StreakFlame weeks={commitment.currentStreakWeeks} longest={commitment.longestStreakWeeks} />
+        <Stack alignItems="flex-end" spacing={0.5}>
+          <StreakFlame weeks={commitment.currentStreakWeeks} longest={commitment.longestStreakWeeks} />
+          {commitment.isEnded && (
+            <Chip
+              label="🏁 Completed"
+              size="small"
+              sx={{ bgcolor: "success.main", color: "#fff", fontWeight: 700 }}
+            />
+          )}
+          {!commitment.isEnded && commitment.endDate && (
+            <Chip
+              label={
+                commitment.daysRemaining === 0 ? "Ends today" : `⏳ ${commitment.daysRemaining}d left`
+              }
+              size="small"
+              variant="outlined"
+            />
+          )}
+        </Stack>
       </Stack>
 
       {commitment.isAtRisk && (
@@ -178,14 +197,21 @@ export default function ProfilePage() {
             <StatBlock label="🔥 Active streaks" value={stats.activeStreakCount} />
             <StatBlock label="🏅 Badges" value={stats.badgeCount} />
           </Stack>
-          {stats.longestEverStreak > 0 && (
+          {(stats.longestEverStreak > 0 || stats.completedCount > 0) && (
             <Typography
               variant="body2"
               color="text.secondary"
               align="center"
               sx={{ mt: 2 }}
             >
-              Personal best: a {stats.longestEverStreak}-week streak
+              {[
+                stats.longestEverStreak > 0 &&
+                  `Personal best: a ${stats.longestEverStreak}-week streak`,
+                stats.completedCount > 0 &&
+                  `🏁 ${stats.completedCount} challenge${stats.completedCount === 1 ? "" : "s"} completed`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </Typography>
           )}
         </CardContent>

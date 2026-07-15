@@ -4,6 +4,7 @@ const path = require("path");
 const multer = require("multer");
 const { db, UPLOADS_DIR } = require("../db");
 const { requireAuth } = require("../middleware/auth");
+const { daysUntil } = require("../lib/week");
 const {
   evaluateAfterCheckIn,
   evaluateAfterLike,
@@ -48,7 +49,12 @@ function serializePost(row, currentUserId) {
     commentCount: row.comment_count,
     likedByMe: currentUserId ? row.liked_by_me === 1 : false,
     commitment: row.commitment_id
-      ? { id: row.commitment_id, title: row.commitment_title, targetPerWeek: row.commitment_target_per_week }
+      ? {
+          id: row.commitment_id,
+          title: row.commitment_title,
+          targetPerWeek: row.commitment_target_per_week,
+          endDate: row.commitment_end_date,
+        }
       : null,
   };
 }
@@ -56,7 +62,8 @@ function serializePost(row, currentUserId) {
 const SELECT_POST_FIELDS = `
   p.id, p.caption, p.image_filename, p.created_at, p.user_id, p.type, p.milestone_meta,
   u.username,
-  p.commitment_id, cm.title AS commitment_title, cm.target_per_week AS commitment_target_per_week
+  p.commitment_id, cm.title AS commitment_title, cm.target_per_week AS commitment_target_per_week,
+  cm.end_date AS commitment_end_date
 `;
 
 router.get("/", (req, res) => {
@@ -93,7 +100,7 @@ router.post("/", requireAuth, upload.single("image"), (req, res) => {
   }
 
   const commitmentRow = db
-    .prepare("SELECT id, user_id, title, target_per_week FROM commitments WHERE id = ?")
+    .prepare("SELECT id, user_id, title, target_per_week, end_date FROM commitments WHERE id = ?")
     .get(commitmentId);
   if (!commitmentRow) {
     return res.status(404).json({ error: "Commitment not found." });
@@ -101,11 +108,15 @@ router.post("/", requireAuth, upload.single("image"), (req, res) => {
   if (commitmentRow.user_id !== req.user.id) {
     return res.status(403).json({ error: "You can only check in on your own commitments." });
   }
+  if (commitmentRow.end_date && daysUntil(commitmentRow.end_date) < 0) {
+    return res.status(400).json({ error: "This commitment has ended." });
+  }
   const commitment = {
     id: commitmentRow.id,
     userId: commitmentRow.user_id,
     title: commitmentRow.title,
     targetPerWeek: commitmentRow.target_per_week,
+    endDate: commitmentRow.end_date,
   };
 
   const caption = typeof req.body.caption === "string" ? req.body.caption.trim() : "";

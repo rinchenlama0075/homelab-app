@@ -40,7 +40,7 @@ All routes are mounted under `/api`.
 | GET    | `/api/auth/me`                  | yes  | Current user, or `401`                        |
 | GET    | `/api/commitments`              | —    | All commitments, newest first; supports `?mine=1` (auth) for just the caller's own |
 | GET    | `/api/commitments/:id`          | —    | A single commitment with progress stats, or `404` |
-| POST   | `/api/commitments`               | yes  | `{ title, description, targetPerWeek }` → creates a commitment |
+| POST   | `/api/commitments`               | yes  | `{ title, description, targetPerWeek, endDate }` → creates a commitment (`endDate` is optional, `YYYY-MM-DD`, must be in the future) |
 | GET    | `/api/posts`                     | —    | Latest check-ins (up to 50), newest first; supports `?commitmentId=` to scope to one commitment |
 | POST   | `/api/posts`                     | yes  | `multipart/form-data` with `commitmentId`, `image`, and a required `caption` — must be the caller's own commitment |
 | POST   | `/api/posts/:id/like`            | yes  | Toggles a like on a post                      |
@@ -54,7 +54,11 @@ frontend and API are served from the same origin (via nginx/CRA's dev proxy).
 
 ### Data model
 
-- `commitments` — a goal a user commits to, with a weekly target (`target_per_week`, 1-7).
+- `commitments` — a goal a user commits to, with a weekly target (`target_per_week`, 1-7) and an
+  optional `end_date` (`YYYY-MM-DD`) that turns it into a time-boxed challenge instead of an
+  open-ended habit. Once `end_date` passes, the commitment is "ended": no more check-ins are
+  accepted, `isAtRisk` stops firing (nothing left to lose), and — if the streak was still intact —
+  a one-time "Finisher" badge/milestone fires.
 - `posts` — either a check-in (`type = 'check_in'`: a photo + caption, optionally tied to a
   commitment via `commitment_id`) or an auto-generated `milestone` post (no photo; `milestone_meta`
   holds the badge/streak details used to render it). Weekly progress for a commitment is computed
@@ -77,8 +81,9 @@ frontend and API are served from the same origin (via nginx/CRA's dev proxy).
   (Friday onward) with the target still unmet — used for loss-aversion nudges in the UI.
 - **Badges** are a static catalog in [`lib/badges.js`](lib/badges.js): escalating streak badges
   (2/4/8/16/26/52 weeks), check-in volume badges (1/10/50/100/365), social/encouragement badges
-  (likes/comments/commitments given), and a "Comeback Kid" badge for rebuilding a streak after a
-  break. Unlocks are evaluated inline after the relevant write (check-in, like, comment, commitment
+  (likes/comments/commitments given), a "Comeback Kid" badge for rebuilding a streak after a
+  break, and a "Finisher" badge for seeing a time-boxed commitment through to its `end_date`.
+  Unlocks are evaluated inline after the relevant write (check-in, like, comment, commitment
   creation) — no cron/polling needed.
 - **Milestone posts** are auto-inserted into `posts` only for streak and volume badges (not the
   smaller social badges), so the feed celebrates real achievements without getting noisy.

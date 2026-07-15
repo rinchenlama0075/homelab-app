@@ -82,7 +82,27 @@ const COMEBACK_BADGE = {
   check: (ctx) => ctx.longestStreakWeeks > ctx.currentStreakWeeks && ctx.currentStreakWeeks >= 2,
 };
 
-const BADGE_CATALOG = [...STREAK_BADGES, ...VOLUME_BADGES, ...SOCIAL_BADGES, COMEBACK_BADGE];
+const FINISHER_BADGE = {
+  code: "finisher",
+  name: "Finisher",
+  emoji: "🏁",
+  scope: "commitment",
+  points: 100,
+  description: "Reached the finish line on a time-boxed commitment",
+  postMilestone: true,
+  // Fires on a check-in made on or after the commitment's last day, as long
+  // as they were still going (not mid-collapse) — rewards seeing a
+  // self-imposed deadline through to the end.
+  check: (ctx) => ctx.isFinalDay && ctx.currentStreakWeeks >= 1,
+};
+
+const BADGE_CATALOG = [
+  ...STREAK_BADGES,
+  ...VOLUME_BADGES,
+  ...SOCIAL_BADGES,
+  COMEBACK_BADGE,
+  FINISHER_BADGE,
+];
 
 function badgeByCode(code) {
   return BADGE_CATALOG.find((badge) => badge.code === code);
@@ -102,10 +122,14 @@ function getTotalPoints(db, userId) {
 }
 
 function createMilestonePost(db, { user, badge, commitment, streakWeeks }) {
-  const caption =
-    badge.scope === "commitment"
-      ? `${badge.emoji} ${user.username} just hit a ${streakWeeks}-week streak on "${commitment.title}"! Unlocked "${badge.name}".`
-      : `${badge.emoji} ${user.username} just unlocked "${badge.name}" — ${badge.description}!`;
+  let caption;
+  if (badge.code === "finisher") {
+    caption = `${badge.emoji} ${user.username} just completed "${commitment.title}" — commitment kept, start to finish!`;
+  } else if (badge.scope === "commitment") {
+    caption = `${badge.emoji} ${user.username} just hit a ${streakWeeks}-week streak on "${commitment.title}"! Unlocked "${badge.name}".`;
+  } else {
+    caption = `${badge.emoji} ${user.username} just unlocked "${badge.name}" — ${badge.description}!`;
+  }
 
   const milestoneMeta = JSON.stringify({
     badgeCode: badge.code,
@@ -195,9 +219,12 @@ function evaluateAfterCheckIn(db, { user, commitment, postId }) {
     .map((row) => row.created_at);
 
   const streak = computeStreak({ checkInTimestamps: timestamps, targetPerWeek: commitment.targetPerWeek });
+  const isFinalDay = Boolean(
+    commitment.endDate && require("./week").daysUntil(commitment.endDate) <= 0
+  );
 
-  for (const badge of [...STREAK_BADGES, COMEBACK_BADGE]) {
-    if (badge.check(streak)) {
+  for (const badge of [...STREAK_BADGES, COMEBACK_BADGE, FINISHER_BADGE]) {
+    if (badge.check({ ...streak, isFinalDay })) {
       const earned = grantBadge(db, {
         user,
         badge,
@@ -281,6 +308,7 @@ module.exports = {
   VOLUME_BADGES,
   SOCIAL_BADGES,
   COMEBACK_BADGE,
+  FINISHER_BADGE,
   badgeByCode,
   awardPoints,
   getTotalPoints,

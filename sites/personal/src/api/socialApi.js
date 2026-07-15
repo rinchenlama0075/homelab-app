@@ -69,10 +69,10 @@ export function getCommitment(id) {
   return request(`/commitments/${id}`).then((data) => data.commitment);
 }
 
-export function createCommitment({ title, description, targetPerWeek }) {
+export function createCommitment({ title, description, targetPerWeek, endDate }) {
   return request("/commitments", {
     method: "POST",
-    body: JSON.stringify({ title, description, targetPerWeek }),
+    body: JSON.stringify({ title, description, targetPerWeek, endDate: endDate || null }),
   }).then((data) => data.commitment);
 }
 

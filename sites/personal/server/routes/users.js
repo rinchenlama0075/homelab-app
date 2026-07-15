@@ -1,6 +1,6 @@
 const express = require("express");
 const { db } = require("../db");
-const { startOfCurrentWeekSql } = require("../lib/week");
+const { startOfCurrentWeekSql, daysUntil } = require("../lib/week");
 const { computeStreak } = require("../lib/streaks");
 const {
   getTotalPoints,
@@ -18,19 +18,24 @@ function serializeCommitmentWithStreak(row, weekStart) {
     .map((post) => post.created_at);
   const streak = computeStreak({ checkInTimestamps: timestamps, targetPerWeek: row.target_per_week });
   const checkInsThisWeek = timestamps.filter((timestamp) => timestamp >= weekStart).length;
+  const daysRemaining = daysUntil(row.end_date);
+  const isEnded = daysRemaining !== null && daysRemaining < 0;
 
   return {
     id: row.id,
     title: row.title,
     description: row.description,
     targetPerWeek: row.target_per_week,
+    endDate: row.end_date,
+    daysRemaining: isEnded ? 0 : daysRemaining,
+    isEnded,
     createdAt: row.created_at,
     checkInsThisWeek,
     totalCheckIns: timestamps.length,
     currentStreakWeeks: streak.currentStreakWeeks,
     longestStreakWeeks: streak.longestStreakWeeks,
-    isAtRisk: streak.isAtRisk,
-    checkInsNeededThisWeek: streak.checkInsNeededThisWeek,
+    isAtRisk: isEnded ? false : streak.isAtRisk,
+    checkInsNeededThisWeek: isEnded ? 0 : streak.checkInsNeededThisWeek,
   };
 }
 
@@ -40,6 +45,7 @@ function serializeCommitmentWithStreak(row, weekStart) {
 function nextStreakBadgeTeasers(commitments, earnedBadgeCodes) {
   const teasers = [];
   for (const commitment of commitments) {
+    if (commitment.isEnded) continue;
     const next = STREAK_BADGES.find(
       (badge) =>
         badge.threshold > commitment.currentStreakWeeks &&
@@ -85,7 +91,7 @@ router.get("/:username", (req, res) => {
 
   const commitmentRows = db
     .prepare(
-      "SELECT id, title, description, target_per_week, created_at FROM commitments WHERE user_id = ? ORDER BY created_at DESC, id DESC"
+      "SELECT id, title, description, target_per_week, end_date, created_at FROM commitments WHERE user_id = ? ORDER BY created_at DESC, id DESC"
     )
     .all(user.id);
   const commitments = commitmentRows.map((row) => serializeCommitmentWithStreak(row, weekStart));
@@ -101,6 +107,7 @@ router.get("/:username", (req, res) => {
 
   const activeStreaks = commitments.filter((c) => c.currentStreakWeeks > 0);
   const atRiskCommitments = commitments.filter((c) => c.isAtRisk);
+  const completedCommitments = commitments.filter((c) => c.isEnded);
   const longestEverStreak = commitments.reduce(
     (max, c) => Math.max(max, c.longestStreakWeeks),
     0
@@ -115,6 +122,7 @@ router.get("/:username", (req, res) => {
       activeStreakCount: activeStreaks.length,
       longestEverStreak,
       atRiskCount: atRiskCommitments.length,
+      completedCount: completedCommitments.length,
     },
     badges: earnedBadges,
     nextBadges: {
