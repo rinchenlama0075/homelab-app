@@ -1,0 +1,9 @@
+{
+  "short_name": "Tap Tunes",
+  "name": "Tap Tunes — NFC Jukebox",
+  "icons": [],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#121016",
+  "background_color": "#121016"
+}
