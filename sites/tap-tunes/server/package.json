@@ -1,0 +1,22 @@
+{
+  "name": "tap-tunes-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tap Tunes API: venues, NFC-driven song requests, Spotify queueing, Stripe token bundles, payouts.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "payout": "node jobs/payout.js",
+    "test": "node --test lib/*.test.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.8.1",
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "socket.io": "^4.8.1",
+    "stripe": "^17.4.0"
+  }
+}

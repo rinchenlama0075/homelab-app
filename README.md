@@ -6,6 +6,7 @@ One git repo, many independent Docker Compose projects. Each site lives under `s
 |------|--------|-------------|--------|
 | Personal portfolio (React + MUI) + social contract app | [`sites/personal`](sites/personal) | 3001 | `rinchen.co` |
 | Bodhicharya Foundation (static site) | [`sites/bodhicharya`](sites/bodhicharya) | 3002 | `bodhicharyafoundation.org` |
+| Tap Tunes (NFC jukebox: order flow, Spotify-Connect kiosk player, owner dashboard) | [`sites/tap-tunes`](sites/tap-tunes) | 3003 | `taptunes.rinchen.co` |
 
 `sites/personal` is four Docker services sharing one compose project: `web` (the CRA build, served
 by nginx, the only one bound to a host port), `api` (Node/Express + SQLite powering the `/social`
@@ -30,6 +31,16 @@ tailing container logs from anywhere, including a phone. It's a **separate nginx
 database. It's a fully independent Docker Compose project — its own container, its own port
 (`3002`), its own domain — sharing nothing with `sites/personal`/`rinchen.co` beyond this repo and
 the underlying server. See [`sites/bodhicharya/README.md`](sites/bodhicharya/README.md).
+
+### Tap Tunes (NFC jukebox business, independent site)
+
+[`sites/tap-tunes`](sites/tap-tunes) is an NFC-tap-to-order jukebox for bars: customers tap a table
+tag, buy song credits, and queue songs; a Spotify-Connect kiosk device at the venue plays the
+audio; bar owners get a dashboard for pricing, NFC tags, live queue moderation, and payouts. Own
+container (`api` + `web`), own port (`3003`), own subdomain (`taptunes.rinchen.co`) — independent of
+`rinchen.co`/`bodhicharyafoundation.org` beyond sharing this repo and server. See
+[`sites/tap-tunes/README.md`](sites/tap-tunes/README.md) for setup, required third-party accounts
+(Spotify, Stripe), and the kiosk/NFC-tag hardware runbook.
 
 ## Layout
 

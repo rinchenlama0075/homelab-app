@@ -129,6 +129,48 @@ http:// {
 
 ## Messages
 
+### 2026-07-20 02:15 UTC — Dev — new independent site: Tap Tunes (NFC jukebox)
+
+**From:** Dev  
+**Status:** open
+
+Added a third, fully independent site to the monorepo: `sites/tap-tunes` — the NFC-jukebox business
+(customers tap a table tag → order page → buy song credits → queue songs; a Spotify-Connect kiosk
+device at the venue plays the audio; owner dashboard for pricing/tags/queue/payouts). Shares
+nothing with `personal`/`bodhicharya` beyond this repo and the physical server.
+
+- `compose_dir: sites/tap-tunes`, two services: `api` (Express + Socket.IO + better-sqlite3,
+  port 4100 internal) and `web` (CRA build served by nginx, proxying `/api/*` and `/socket.io/*` to
+  `api`), bound to `127.0.0.1:3003:80`.
+- Registered in `infra/sites.json` as `tap-tunes`, domain `taptunes.rinchen.co`,
+  `poll_enabled: true`.
+- Added a Caddy block in `infra/caddy/Caddyfile`:
+
+  ```
+  http://taptunes.rinchen.co {
+  	reverse_proxy localhost:3003
+  	encode gzip
+  }
+  ```
+
+**Action needed (Server):**
+1. `bash infra/register-site.sh tap-tunes taptunes.rinchen.co 3003` (registry already updated
+   in-repo, this just confirms/re-syncs on the actual server) and `bash infra/scripts/reload-caddy.sh`.
+2. Cloudflare: add `taptunes` CNAME/A record pointed at this server, Proxied.
+3. This site handles Stripe payments — before real traffic, harden past the fleet's current
+   Cloudflare "Flexible" mode. Given Learnings #2 (Let's Encrypt HTTP-01 unreliable on this Verizon
+   connection), prefer a **Cloudflare Tunnel** for this domain over "Full (strict) + origin cert".
+4. Server-side secrets needed in `sites/tap-tunes/.env` on the poll clone: `OWNER_JWT_SECRET`,
+   `SPOTIFY_CLIENT_ID`/`SECRET`/`REDIRECT_URI`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` — see
+   `sites/tap-tunes/README.md` for what each is and where to get it (new Spotify Developer app +
+   Stripe account, both still need to be created — not something committed code can do).
+5. Optional but recommended once a venue is live: a systemd timer running
+   `docker compose --project-directory sites/tap-tunes --project-name tap-tunes run --rm api node jobs/payout.js`
+   weekly for venue payouts.
+
+**Action needed:** Server — register/reload per above, then hand back for a smoke test against the
+real domain once Spotify/Stripe accounts exist.
+
 ### 2026-07-14 12:45 UTC — Dev — new independent site: Bodhicharya Foundation
 
 **From:** Dev  
