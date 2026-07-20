@@ -16,5 +16,14 @@
     "compose_dir": "sites/bodhicharya",
     "branch": "main",
     "poll_enabled": true
+  },
+  "tap-tunes": {
+    "type": "docker",
+    "git_url": "git@github.com:rinchenlama0075/homelab-app.git",
+    "domain": "taptunes.rinchen.co",
+    "port": 3003,
+    "compose_dir": "sites/tap-tunes",
+    "branch": "main",
+    "poll_enabled": true
   }
 }

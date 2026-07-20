@@ -28,6 +28,26 @@ http://bodhicharyafoundation.org, http://www.bodhicharyafoundation.org {
 	encode gzip
 }
 
+# Tap Tunes — sites/tap-tunes, independent site, subdomain of rinchen.co
+# (no purchased domain needed yet; swap to a dedicated domain later the same
+# way as any other site — infra/register-site.sh + a DNS change).
+#
+# SECURITY NOTE before real payments go live here: this still matches the
+# rest of the fleet's Cloudflare SSL "Flexible" + `auto_https off` (browser
+# <-> Cloudflare is encrypted, Cloudflare <-> this origin is plaintext over
+# the WAN). Because this site handles Stripe webhooks and payment flows,
+# harden this before accepting live traffic — but note Server-Dev-chat.md's
+# "Learnings" #2: Let's Encrypt HTTP-01 has been unreliable on this Verizon
+# connection, which is *why* the fleet runs Flexible today. So prefer a
+# **Cloudflare Tunnel** (cloudflared, outbound-only, no port-forward or ACME
+# needed) over "Full (strict) + Let's Encrypt origin cert" for this site —
+# already an open TODO in Server-Dev-chat.md. That's a Cloudflare-dashboard +
+# on-server change, not something this file alone can do.
+http://taptunes.rinchen.co {
+	reverse_proxy localhost:3003
+	encode gzip
+}
+
 http:// {
 	respond "Homelab server is running." 200
 }
